@@ -37,3 +37,33 @@ test("an examiner adds a question to the bank and edits it", async ({ page, acco
   await page.getByRole("button", { name: "Save question" }).click();
   await expect(page.getByText("Saved as version 2.")).toBeVisible();
 });
+
+test("an examiner creates an exam and builds its paper from the bank", async ({ page, account }) => {
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(account.name);
+  await page.goto("/manage/new");
+  await page.getByLabel("Title").fill("Physics Final");
+  await page.getByLabel("Duration in minutes").fill("60");
+  await page.getByLabel("Total marks").fill("50");
+  await page.getByLabel("Closes (Pakistan time)").fill("2020-01-01T09:00");
+  await page.getByRole("button", { name: "Create exam" }).click();
+  await expect(page.getByText("The closing time must be after the opening time.")).toBeVisible();
+
+  await page.reload();
+  await page.getByLabel("Title").fill("Physics Final");
+  await page.getByRole("button", { name: "Create exam" }).click();
+  await expect(page.getByRole("heading", { name: "Physics Final" })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText("0 of 50 marks")).toBeVisible();
+
+  const addButtons = page.getByRole("button", { name: /^Add to exam:/ });
+  const paper = page.getByRole("list", { name: "Questions on this paper" });
+  for (let added = 0; added < 5; added += 1) {
+    await addButtons.first().click();
+    await expect(paper.getByRole("listitem")).toHaveCount(added + 1, { timeout: 15_000 });
+  }
+  const paperMarks = await paper.getByText(/· \d+ marks?$/).allInnerTexts();
+  const sum = paperMarks.reduce((total, line) => total + Number(line.match(/(\d+) marks?$/)?.[1] ?? 0), 0);
+  await expect(page.getByText(`${sum} of 50 marks`)).toBeVisible();
+
+  await page.goto("/manage");
+  await expect(page.getByRole("link", { name: /Physics Final/ })).toContainText("Draft");
+});
