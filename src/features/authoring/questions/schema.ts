@@ -71,3 +71,19 @@ export type QuestionInput = z.infer<typeof questionSchema>;
 export function firstLine(text: string): string {
   return text.split("\n")[0] ?? text;
 }
+
+export function questionColumns(input: QuestionInput) {
+  const shared = { topic: input.topic, difficulty: input.difficulty, kind: input.kind, body: input.body, marks: input.marks };
+  if (input.kind === "written") {
+    return { ...shared, options: [], answer_key: null, multiple_rule: "partial", rubric: input.rubric };
+  }
+  const options = input.options.map((text, index) => ({ id: OPTION_IDS[index], text }));
+  const validIds = options.map((option) => option.id as string);
+  return {
+    ...shared,
+    options,
+    answer_key: input.correct.filter((id) => validIds.includes(id)).sort(),
+    multiple_rule: input.kind === "multiple" ? input.multiple_rule : "partial",
+    rubric: null,
+  };
+}

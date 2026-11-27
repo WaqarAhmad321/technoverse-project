@@ -192,3 +192,24 @@ test("a candidate import lists bad rows and saves nothing until the file is clea
   await page.getByRole("button", { name: "Import 2 candidates" }).click();
   await expect(page.getByText("Imported 2 candidates.")).toBeVisible({ timeout: 15_000 });
 });
+
+test("a question import reports a key outside the options, then imports an Urdu question", async ({ page, account }) => {
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(account.name);
+  await page.goto("/questions/import");
+  const urdu = "توانائی کی بچت کے دو طریقے لکھیں۔";
+  const file = (answer: string) =>
+    JSON.stringify([
+      { topic: "Waves", difficulty: "easy", kind: "single", marks: 2, body: "What is the unit of frequency?", options: ["Hertz", "Metre"], answer: [answer] },
+      { topic: "Energy", difficulty: "medium", kind: "written", marks: 5, body: urdu, rubric: "2.5 marks for each sensible way." },
+    ]);
+  const rows = page.getByLabel("Questions (you can paste or fix them here)");
+  await rows.fill(file("e"));
+  await page.getByRole("button", { name: "Check file" }).click();
+  await expect(page.getByRole("list", { name: "Import problems" })).toContainText("Question 1: A single-answer question needs exactly one correct option.", { timeout: 15_000 });
+  await rows.fill(file("a"));
+  await page.getByRole("button", { name: "Check file" }).click();
+  await page.getByRole("button", { name: "Import 2 questions" }).click();
+  await expect(page.getByText("Imported 2 questions.")).toBeVisible({ timeout: 15_000 });
+  await page.goto("/questions");
+  await expect(page.getByText(urdu)).toBeVisible();
+});

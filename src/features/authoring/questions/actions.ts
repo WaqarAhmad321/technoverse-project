@@ -6,7 +6,7 @@ import { requireMember } from "@/lib/access";
 import { db, unwrap } from "@/lib/db";
 import type { Question } from "@/lib/exam-types";
 import { examTitlesByQuestion } from "./data";
-import { OPTION_IDS, questionSchema, type QuestionInput } from "./schema";
+import { questionColumns, questionSchema } from "./schema";
 
 export type QuestionFormState = { status: "error"; message: string } | { status: "saved"; version: number } | null;
 
@@ -25,22 +25,6 @@ function readForm(formData: FormData): unknown {
   };
 }
 
-function toColumns(input: QuestionInput) {
-  const shared = { topic: input.topic, difficulty: input.difficulty, kind: input.kind, body: input.body, marks: input.marks };
-  if (input.kind === "written") {
-    return { ...shared, options: [], answer_key: null, multiple_rule: "partial", rubric: input.rubric };
-  }
-  const options = input.options.map((text, index) => ({ id: OPTION_IDS[index], text }));
-  const validIds = options.map((option) => option.id as string);
-  return {
-    ...shared,
-    options,
-    answer_key: input.correct.filter((id) => validIds.includes(id)).sort(),
-    multiple_rule: input.kind === "multiple" ? input.multiple_rule : "partial",
-    rubric: null,
-  };
-}
-
 export async function saveQuestion(
   questionId: string | null,
   _previous: QuestionFormState,
@@ -49,7 +33,7 @@ export async function saveQuestion(
   const member = await requireMember("examiner", "institution_admin");
   const parsed = questionSchema.safeParse(readForm(formData));
   if (!parsed.success) return { status: "error", message: parsed.error.issues[0]?.message ?? "Check the question and try again." };
-  const columns = toColumns(parsed.data);
+  const columns = questionColumns(parsed.data);
 
   if (!questionId) {
     const created: { id: string } | null = unwrap(

@@ -29,9 +29,14 @@ export default async function QuestionBankPage({ searchParams }: { searchParams:
   return (
     <div>
       <PageHeader title="Question bank" description={`${plural(rows.length, "question")} you can reuse in any exam.`}>
-        <Button asChild size="lg">
-          <Link href="/questions/new">Add question</Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline" size="lg">
+            <Link href="/questions/import">Import questions</Link>
+          </Button>
+          <Button asChild size="lg">
+            <Link href="/questions/new">Add question</Link>
+          </Button>
+        </div>
       </PageHeader>
       <BankFiltersForm filters={filters} topics={topics} />
       <BankList rows={rows} highlightId={search.added} isFiltered={isFiltered} />
