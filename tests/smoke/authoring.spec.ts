@@ -255,3 +255,14 @@ test("AI variants of a question pass a blind check, get approved and split candi
   await expect(page.getByRole("heading", { name: "3 different papers are possible" })).toBeVisible();
   await expect(page.getByText("AI variant · different from the other paper")).toBeVisible();
 });
+
+test("a pasted leak is traced to the papers whose order it matches", async ({ page, account }) => {
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(account.name);
+  await page.goto("/manage");
+  await page.getByRole("link", { name: /Physics Quiz 1/ }).click();
+  await page.getByRole("link", { name: "Trace a leak" }).click();
+  await page.getByLabel(/^Leaked paper/).fill("Q1. What is the SI unit of force?\nQ2. A car travels 120 km in 2 hours. What is its average speed?");
+  await page.getByRole("button", { name: "Trace the leak" }).click();
+  await expect(page.getByText("Found 2 of this exam's 10 questions in the leak.")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("list", { name: "Likely sources" })).toContainText(/Matches roll \d+'s order on 2 of 2 questions/);
+});
