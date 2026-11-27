@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Plus, X } from "lucide-react";
 import { FormMessage } from "@/components/form-message";
 import { SubmitButton } from "@/components/submit-button";
@@ -42,6 +43,9 @@ function startingOptions(question: Question | null): Option[] {
 
 export function QuestionForm({ question, topics }: { question: Question | null; topics: string[] }) {
   const [state, formAction] = useActionState<QuestionFormState, FormData>(saveQuestion.bind(null, question?.id ?? null), null);
+  useEffect(() => {
+    if (state?.status === "saved") toast.success(`Saved as version ${state.version}.`);
+  }, [state]);
   const [kind, setKind] = useState<QuestionKind>(question?.kind ?? "single");
   const [options, setOptions] = useState<Option[]>(() => startingOptions(question));
   const [rule, setRule] = useState<MultipleRule>(question?.multiple_rule ?? "partial");
@@ -217,7 +221,6 @@ export function QuestionForm({ question, topics }: { question: Question | null; 
       )}
 
       {message && <FormMessage tone="error">{message}</FormMessage>}
-      {state?.status === "saved" && !clientError && <FormMessage tone="done">Saved as version {state.version}.</FormMessage>}
 
       <div className="flex flex-col gap-2">
         <SubmitButton size="lg" className="self-start">

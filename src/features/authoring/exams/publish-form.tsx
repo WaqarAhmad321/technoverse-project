@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { FormMessage } from "@/components/form-message";
+import { isActionError, useActionToast } from "@/components/use-action-toast";
 import { SubmitButton } from "@/components/submit-button";
 import type { PublishState } from "./publish-actions";
 
@@ -15,6 +16,7 @@ type PublishFormProps = {
 
 export function PublishForm({ action, label, variant, isBlocked, blockedReason }: PublishFormProps) {
   const [state, formAction] = useActionState(action, null);
+  useActionToast(state);
   return (
     <form action={formAction} className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-3">
@@ -24,7 +26,7 @@ export function PublishForm({ action, label, variant, isBlocked, blockedReason }
         </SubmitButton>
         {isBlocked && blockedReason && <p className="text-base text-muted-foreground">{blockedReason}</p>}
       </div>
-      {state && <FormMessage tone={state.status === "error" ? "error" : "done"}>{state.message}</FormMessage>}
+      {state && isActionError(state) && <FormMessage tone="error">{state.message}</FormMessage>}
     </form>
   );
 }
