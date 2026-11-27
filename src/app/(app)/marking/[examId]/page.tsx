@@ -7,6 +7,9 @@ import { getExam } from "@/features/authoring/exams/data";
 import { markObjectiveAnswers } from "@/features/authoring/marking/actions";
 import { autoGradeObjective } from "@/features/authoring/marking/auto-grade";
 import { listFinishedAttempts, objectiveTotals } from "@/features/authoring/marking/data";
+import { saveWrittenMark } from "@/features/authoring/marking/written-actions";
+import { loadWrittenQueue, type WrittenQueue } from "@/features/authoring/marking/written-data";
+import { WrittenForm } from "@/features/authoring/marking/written-form";
 import { formatPakistanTime, plural } from "@/features/authoring/format";
 
 export default async function MarkingPage({ params }: { params: Promise<{ examId: string }> }) {
@@ -16,7 +19,7 @@ export default async function MarkingPage({ params }: { params: Promise<{ examId
   const attempts = await listFinishedAttempts(member, exam.id);
   // Opening a closed exam marks its objective answers, so the examiner never starts from a blank sheet.
   const progress = examPhase(exam) === "closed" ? await autoGradeObjective(member, exam.id, attempts) : null;
-  const totals = await objectiveTotals(member, attempts.map((attempt) => attempt.id));
+  const [totals, queue] = await Promise.all([objectiveTotals(member, attempts.map((attempt) => attempt.id)), loadWrittenQueue(member, attempts)]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -33,6 +36,7 @@ export default async function MarkingPage({ params }: { params: Promise<{ examId
           {plural(progress.writtenToMark, "written answer")} to mark
         </p>
       )}
+      {queue.total > 0 && <WrittenQueueSection examId={exam.id} queue={queue} />}
       {attempts.length === 0 ? (
         <EmptyState message="Nobody has submitted this exam yet. Submitted attempts appear here for marking." />
       ) : (
@@ -53,5 +57,30 @@ export default async function MarkingPage({ params }: { params: Promise<{ examId
         </ul>
       )}
     </div>
+  );
+}
+
+function WrittenQueueSection({ examId, queue }: { examId: string; queue: WrittenQueue }) {
+  const { next } = queue;
+  return (
+    <section aria-labelledby="written-heading" className="flex flex-col gap-4 rounded-3xl bg-card p-4 md:p-6">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 id="written-heading" className="text-xl font-medium">
+          Written answers
+        </h2>
+        <p className="text-base text-muted-foreground" aria-live="polite">
+          {next ? `Marking in progress (${queue.marked} of ${queue.total} written answers)` : "All marked"}
+        </p>
+      </div>
+      {next && (
+        <div key={`${next.attempt_id}:${next.question_id}`} className="flex flex-col gap-4">
+          <p className="text-sm text-muted-foreground">Roll {next.rollNumber}</p>
+          <p className="text-base font-medium">{next.body}</p>
+          {next.rubric && <p className="rounded-xl bg-muted px-4 py-3 text-base">Rubric: {next.rubric}</p>}
+          <blockquote className="whitespace-pre-line border-l-2 border-border pl-4 text-base">{next.answerText || "No answer given."}</blockquote>
+          <WrittenForm item={next} action={saveWrittenMark.bind(null, examId)} />
+        </div>
+      )}
+    </section>
   );
 }

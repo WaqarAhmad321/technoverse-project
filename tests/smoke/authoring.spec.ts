@@ -140,3 +140,17 @@ test("opening a closed exam marks every objective answer, and marking again chan
   await expect(attempts).toBeVisible();
   expect(await attempts.innerText()).toBe(before);
 });
+
+test("an examiner marks a written answer and cannot go over the question's marks", async ({ page, account }) => {
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(account.name);
+  await page.goto("/manage");
+  await page.getByRole("link", { name: /Physics Quiz 1/ }).click();
+  await page.getByRole("link", { name: "Open marking" }).click();
+  await expect(page.getByText("Marking in progress (0 of 30 written answers)")).toBeVisible({ timeout: 20_000 });
+  await page.getByLabel(/^Marks out of/).fill("7");
+  await page.getByRole("button", { name: "Save and next" }).click();
+  await expect(page.getByText("This question is worth 5 marks.")).toBeVisible();
+  await page.getByLabel(/^Marks out of/).fill("4");
+  await page.getByRole("button", { name: "Save and next" }).click();
+  await expect(page.getByText("Marking in progress (1 of 30 written answers)")).toBeVisible();
+});
