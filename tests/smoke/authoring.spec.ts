@@ -8,8 +8,8 @@ test("an examiner adds a question to the bank and edits it", async ({ page, acco
 
   // The form switches its fields once it has hydrated, so retry the choice until it takes.
   await expect(async () => {
-    await page.getByLabel("Kind").click();
-    await page.getByRole("option", { name: /multiple/i }).click();
+    await page.getByLabel("Kind").click({ timeout: 2_000 });
+    await page.getByRole("option", { name: /multiple/i }).click({ timeout: 2_000 });
     await expect(page.getByText("max(0, (right − wrong) / keyed) × marks")).toBeVisible({ timeout: 1_000 });
   }).toPass();
   await page.getByLabel("Kind").click();

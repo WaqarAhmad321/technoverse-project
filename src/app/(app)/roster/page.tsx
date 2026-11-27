@@ -2,6 +2,9 @@ import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { Pagination } from "@/components/pagination";
 import { paginate } from "@/lib/pagination";
+
+// A class list is scanned by roll number, so a page holds a typical class section.
+const ROSTER_PAGE_SIZE = 25;
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/states";
 import { requireMember } from "@/lib/access";
@@ -12,7 +15,7 @@ import { plural } from "@/features/authoring/format";
 export default async function RosterPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const member = await requireMember("examiner", "institution_admin");
   const [roster, { page: requestedPage }] = await Promise.all([listRoster(member), searchParams]);
-  const shown = paginate(roster, requestedPage);
+  const shown = paginate(roster, requestedPage, ROSTER_PAGE_SIZE);
 
   return (
     <div className="flex flex-col gap-4">
