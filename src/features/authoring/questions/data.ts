@@ -7,14 +7,16 @@ import type { Difficulty, Question, QuestionKind } from "@/lib/exam-types";
 export type BankFilters = { topic?: string; difficulty?: Difficulty; kind?: QuestionKind; q?: string };
 export type BankRow = Question & { examTitles: string[] };
 
-export async function listQuestions(member: Member, filters: BankFilters = {}): Promise<BankRow[]> {
+export async function listQuestions(member: Member, filters: BankFilters = {}, withUsage = true): Promise<BankRow[]> {
   let query = db().from("questions").select("*").eq("institution_id", member.institution.id);
   if (filters.topic) query = query.eq("topic", filters.topic);
   if (filters.difficulty) query = query.eq("difficulty", filters.difficulty);
   if (filters.kind) query = query.eq("kind", filters.kind);
   if (filters.q) query = query.ilike("body", `%${filters.q.replace(/[%_]/g, "")}%`);
-  const questions: Question[] = unwrap(await query.order("created_at", { ascending: false }));
-  const usage = await examTitlesByQuestion(member);
+  const [questions, usage]: [Question[], Map<string, string[]>] = await Promise.all([
+    query.order("created_at", { ascending: false }).then(unwrap),
+    withUsage ? examTitlesByQuestion(member) : new Map<string, string[]>(),
+  ]);
   return questions.map((question) => ({ ...question, examTitles: usage.get(question.id) ?? [] }));
 }
 

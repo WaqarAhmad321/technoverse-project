@@ -79,9 +79,8 @@ export async function updateExam(examId: string, _previous: ExamFormState, formD
 
 async function editablePaper(examId: string): Promise<{ member: Member; exam: Exam } | null> {
   const member = await requireMember("examiner", "institution_admin");
-  const exam = await getExam(member, examId);
-  if (!can(member, "exam.edit", exam)) return null;
-  if ((await countStartedAttempts(member, exam.id)) > 0) return null;
+  const [exam, started] = await Promise.all([getExam(member, examId), countStartedAttempts(member, examId)]);
+  if (!can(member, "exam.edit", exam) || started > 0) return null;
   return { member, exam };
 }
 
@@ -108,11 +107,11 @@ export async function addQuestionToExam(examId: string, questionId: string): Pro
   const editable = await editablePaper(examId);
   if (!editable) return;
   const { member, exam } = editable;
-  const question: { id: string } | null = unwrap(
-    await db().from("questions").select("id").eq("id", questionId).eq("institution_id", member.institution.id).maybeSingle(),
-  );
+  const [question, current]: [{ id: string } | null, { position: number }[]] = await Promise.all([
+    db().from("questions").select("id").eq("id", questionId).eq("institution_id", member.institution.id).maybeSingle().then(unwrap),
+    positions(member, exam.id),
+  ]);
   if (!question) return;
-  const current = await positions(member, exam.id);
   const last = current.at(-1)?.position ?? 0;
   unwrap(
     await db()

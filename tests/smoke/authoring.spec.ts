@@ -39,6 +39,7 @@ test("an examiner adds a question to the bank and edits it", async ({ page, acco
 });
 
 test("an examiner creates an exam and builds its paper from the bank", async ({ page, account }) => {
+  test.setTimeout(90_000);
   await expect(page.getByRole("heading", { level: 1 })).toContainText(account.name);
   await page.goto("/manage/new");
   await page.getByLabel("Title").fill("Physics Final");

@@ -98,7 +98,7 @@ async function QuestionsTab({
 }) {
   const difficulty = DIFFICULTIES.includes(search.difficulty as Difficulty) ? (search.difficulty as Difficulty) : undefined;
   const topic = search.topic || undefined;
-  const [bank, topics] = isEditable ? await Promise.all([listQuestions(member, { topic, difficulty }), listTopics(member)]) : [[], []];
+  const [bank, topics] = isEditable ? await Promise.all([listQuestions(member, { topic, difficulty }, false), listTopics(member)]) : [[], []];
   const inPaper = new Set(paper.map((question) => question.id));
 
   return (
