@@ -119,3 +119,18 @@ export async function candidateAttention(member: Member): Promise<AttentionItem[
   }
   return items;
 }
+
+export async function adminAttention(member: Member): Promise<AttentionItem[]> {
+  const [requests, invitations]: [{ id: string }[], { id: string }[]] = await Promise.all([
+    db().from("join_requests").select("id").eq("institution_id", member.institution.id).eq("status", "pending").then(unwrap),
+    db().from("invitations").select("id").eq("institution_id", member.institution.id).eq("status", "pending").then(unwrap),
+  ]);
+  const items: AttentionItem[] = [];
+  if (requests.length > 0) {
+    items.push({ id: "join-requests", href: "/admin/people", title: `${plural(requests.length, "request")} to join`, detail: "Approve or decline each one on the People screen.", tone: "live" });
+  }
+  if (invitations.length > 0) {
+    items.push({ id: "invitations", href: "/admin/people", title: `${plural(invitations.length, "invitation")} not accepted yet`, detail: "Copy the sign-in link again or revoke it.", tone: "ready" });
+  }
+  return items;
+}

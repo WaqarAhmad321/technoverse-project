@@ -1,12 +1,14 @@
 import { Activity, Award, Hourglass, CalendarClock, ClipboardList, FilePenLine, Library, NotebookPen, ShieldCheck, UsersRound } from "lucide-react";
 import Link from "next/link";
+import { GettingStarted } from "@/components/getting-started";
+import { NoAccessNotice } from "@/components/no-access-notice";
 import { PageHeader } from "@/components/page-header";
 import { StatTile } from "@/components/stat-tile";
 import { Button } from "@/components/ui/button";
 import { getAccess } from "@/lib/access";
 import { formatPkt } from "@/lib/format";
 import { AttentionList } from "@/components/attention-list";
-import { candidateAttention, controllerAttention, examinerAttention } from "@/lib/attention";
+import { adminAttention, candidateAttention, controllerAttention, examinerAttention } from "@/lib/attention";
 import { CandidateChartsSection, ExaminerChartsSection, PlatformChartsSection, StaffChartsSection } from "@/components/charts/dashboard-charts";
 import { loadCandidateCharts, loadExaminerCharts, loadPlatformCharts, loadStaffCharts } from "@/lib/dashboard-data";
 import { loadCandidateSummary, loadStaffSummary } from "@/lib/home-data";
@@ -29,6 +31,7 @@ export default async function HomePage() {
           roles.includes("controller") ? controllerAttention(member) : [],
           roles.includes("examiner") ? examinerAttention(member) : [],
           roles.includes("candidate") ? candidateAttention(member) : [],
+          roles.includes("institution_admin") ? adminAttention(member) : [],
         ]).then((lists) => lists.flat())
       : [],
     member && isExaminer ? loadExaminerCharts(member) : null,
@@ -40,6 +43,7 @@ export default async function HomePage() {
   return (
     <div className="flex flex-col gap-8">
       <PageHeader title={`Welcome, ${firstName}`} description={current?.institution.name ?? (access.profile.is_super_admin ? "Platform admin" : undefined)} />
+      {member && <GettingStarted member={member} />}
 
       {current?.institution.status === "pending" && (
         <p className="flex items-start gap-3 rounded-3xl bg-primary/10 p-5 text-base">
@@ -48,11 +52,7 @@ export default async function HomePage() {
         </p>
       )}
       {access.suspended && <p className="rounded-3xl bg-card p-6 text-base">Your institution is suspended. Ask the platform admin to reactivate it.</p>}
-      {!current && !access.suspended && !access.profile.is_super_admin && (
-        <p className="rounded-3xl bg-card p-6 text-base">
-          You are not on an institution&apos;s roster yet. Ask your examiner to add {access.profile.email}, then sign in again.
-        </p>
-      )}
+      {!current && !access.suspended && !access.profile.is_super_admin && <NoAccessNotice access={access} />}
 
       {member && (
         <AttentionList items={attention} empty="You are all caught up. New marking, approvals, challenges and results will show up here." />
