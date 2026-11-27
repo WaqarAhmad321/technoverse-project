@@ -22,7 +22,7 @@ function describe(action: string, payload: Record<string, unknown>): string {
 }
 
 export default async function AuditPage() {
-  const member = await requireMember("institution_admin");
+  const member = await requireMember("institution_admin", "controller", "observer");
   const rows = await loadAuditRows(member);
 
   return (

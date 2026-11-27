@@ -56,7 +56,7 @@ function StatusCell({ row, questionCount }: { row: MonitorRow; questionCount: nu
 
 export default async function MonitorPage({ params }: { params: Promise<{ examId: string }> }) {
   const { examId } = await params;
-  const member = await requireMember("examiner", "institution_admin");
+  const member = await requireMember("examiner", "institution_admin", "controller", "invigilator");
   const exam = await loadExamForStaff(member, examId);
   if (!can(member, "exam.monitor", exam)) notFound();
   const [rows, questions, announcements] = await Promise.all([
@@ -64,6 +64,9 @@ export default async function MonitorPage({ params }: { params: Promise<{ examId
     loadQuestionPreviews(exam.id, member.institution.id),
     loadAnnouncements(exam.id),
   ]);
+  const canSpeak = member.roles.some((role) => role === "examiner" || role === "institution_admin" || role === "controller");
+  const order = (row: MonitorRow) => (row.attempt?.status === "in_progress" ? 0 : row.attempt ? 1 : 2);
+  const sortedRows = [...rows].sort((a, b) => order(a) - order(b));
   const inProgress = rows.filter((row) => row.attempt?.status === "in_progress").length;
   const submitted = rows.filter((row) => row.attempt && row.attempt.status !== "in_progress").length;
 
@@ -74,7 +77,7 @@ export default async function MonitorPage({ params }: { params: Promise<{ examId
         title={exam.title}
         description={`Live · ${inProgress} sitting now · ${submitted} submitted · ${rows.length} enrolled. Updates every 5 seconds.`}
       />
-      <AnnouncementForm examId={exam.id} />
+      {canSpeak && <AnnouncementForm examId={exam.id} />}
       {announcements.length > 0 && (
         <section className="flex flex-col gap-2 rounded-3xl bg-card p-4 md:p-6">
           <h2 className="text-xl font-medium">Sent</h2>
@@ -101,7 +104,7 @@ export default async function MonitorPage({ params }: { params: Promise<{ examId
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((row) => (
+              {sortedRows.map((row) => (
                 <TableRow key={row.candidate.id}>
                   <TableCell className="font-mono">{row.candidate.roll_number}</TableCell>
                   <TableCell>{row.candidate.full_name}</TableCell>
@@ -110,7 +113,7 @@ export default async function MonitorPage({ params }: { params: Promise<{ examId
                   </TableCell>
                   <TableCell className="text-sm whitespace-normal text-muted-foreground">
                     {row.signals.length === 0 ? "None" : row.signals.slice(0, 3).map((signal) => <span key={signal.occurred_at} className="block">{signalText(signal)}</span>)}
-                    {row.attempt && row.signals.some((signal) => signal.kind === "credit_pending") && (
+                    {canSpeak && row.attempt && row.signals.some((signal) => signal.kind === "credit_pending") && (
                       <ApproveCreditButton
                         attemptId={row.attempt.id}
                         examId={exam.id}

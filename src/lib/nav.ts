@@ -12,9 +12,9 @@ export const navItems: NavItem[] = [
   { href: "/disputes", label: "Disputes", audience: ["examiner"] },
   { href: "/exams", label: "My exams", audience: ["candidate"] },
   { href: "/results", label: "My results", audience: ["candidate"] },
-  { href: "/monitor", label: "Live monitor", audience: ["examiner", "institution_admin"] },
+  { href: "/monitor", label: "Live monitor", audience: ["examiner", "institution_admin", "controller", "invigilator"] },
   { href: "/admin/people", label: "People", audience: ["institution_admin"] },
-  { href: "/admin/audit", label: "Audit log", audience: ["institution_admin"] },
+  { href: "/admin/audit", label: "Audit log", audience: ["institution_admin", "controller", "observer"] },
   { href: "/platform", label: "Institutions", audience: ["super_admin"] },
 ];
 
