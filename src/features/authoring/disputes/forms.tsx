@@ -1,6 +1,8 @@
 "use client";
 
 import { useActionState } from "react";
+import { AiFillButton } from "@/components/ai-fill-button";
+import { draftDisputeReply } from "../ai/draft-actions";
 import { FormMessage } from "@/components/form-message";
 import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
@@ -41,7 +43,7 @@ export function ChallengeForm({ action, questions }: { action: Action; questions
   );
 }
 
-export function DecisionForm({ action, options }: { action: Action; options: { id: string; text: string }[] }) {
+export function DecisionForm({ action, options, disputeId }: { action: Action; options: { id: string; text: string }[]; disputeId: string }) {
   const [state, formAction] = useActionState(action, null);
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -56,7 +58,10 @@ export function DecisionForm({ action, options }: { action: Action; options: { i
         </ThemedSelect>
       </div>
       <div className="flex flex-col gap-2">
-        <Label htmlFor="reason">Reason (the candidate sees it)</Label>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Label htmlFor="reason">Reason (the candidate sees it)</Label>
+          <AiFillButton targetId="reason" run={(current) => draftDisputeReply(disputeId, "", current)} />
+        </div>
         <Textarea id="reason" name="reason" rows={2} />
       </div>
       {state && <FormMessage tone="error">{state.message}</FormMessage>}
@@ -75,7 +80,7 @@ export function DecisionForm({ action, options }: { action: Action; options: { i
   );
 }
 
-export function WrittenDecisionForm({ action, awarded, marks }: { action: Action; awarded: number; marks: number }) {
+export function WrittenDecisionForm({ action, awarded, marks, disputeId }: { action: Action; awarded: number; marks: number; disputeId: string }) {
   const [state, formAction] = useActionState(action, null);
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -84,7 +89,10 @@ export function WrittenDecisionForm({ action, awarded, marks }: { action: Action
         <Input id="marks" name="marks" inputMode="decimal" defaultValue={String(awarded)} />
       </div>
       <div className="flex flex-col gap-2">
-        <Label htmlFor="reason">Reason (the candidate sees it)</Label>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Label htmlFor="reason">Reason (the candidate sees it)</Label>
+          <AiFillButton targetId="reason" run={(current) => draftDisputeReply(disputeId, "", current)} />
+        </div>
         <Textarea id="reason" name="reason" rows={2} />
       </div>
       {state && <FormMessage tone="error">{state.message}</FormMessage>}
