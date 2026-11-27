@@ -5,6 +5,8 @@ import { StatTile } from "@/components/stat-tile";
 import { Button } from "@/components/ui/button";
 import { getAccess } from "@/lib/access";
 import { formatPkt } from "@/lib/format";
+import { AttentionList } from "@/components/attention-list";
+import { candidateAttention, controllerAttention, examinerAttention } from "@/lib/attention";
 import { loadCandidateSummary, loadStaffSummary } from "@/lib/home-data";
 
 export default async function HomePage() {
@@ -14,9 +16,17 @@ export default async function HomePage() {
   const member = current ? { user: access.user, profile: access.profile, institution: current.institution, roles: current.roles } : null;
   const isStaff = current?.roles.some((role) => role !== "candidate") ?? false;
   const isCandidate = current?.roles.includes("candidate") ?? false;
-  const [staff, candidate] = await Promise.all([
+  const roles = current?.roles ?? [];
+  const [staff, candidate, attention] = await Promise.all([
     member && isStaff ? loadStaffSummary(member) : null,
     member && isCandidate ? loadCandidateSummary(member) : null,
+    member
+      ? Promise.all([
+          roles.includes("controller") ? controllerAttention(member) : [],
+          roles.includes("examiner") ? examinerAttention(member) : [],
+          roles.includes("candidate") ? candidateAttention(member) : [],
+        ]).then((lists) => lists.flat())
+      : [],
   ]);
 
   return (
@@ -34,6 +44,10 @@ export default async function HomePage() {
         <p className="rounded-3xl bg-card p-6 text-base">
           You are not on an institution&apos;s roster yet. Ask your examiner to add {access.profile.email}, then sign in again.
         </p>
+      )}
+
+      {member && (
+        <AttentionList items={attention} empty="You are all caught up. New marking, approvals, challenges and results will show up here." />
       )}
 
       {candidate && (
