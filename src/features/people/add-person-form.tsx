@@ -5,6 +5,7 @@ import { FormMessage } from "@/components/form-message";
 import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { addPerson } from "./actions";
 import { ROLE_CHOICES } from "./roles";
 
@@ -21,18 +22,18 @@ export function AddPersonForm() {
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="add-role">Role</Label>
-          <select
-            id="add-role"
-            name="role"
-            defaultValue="examiner"
-            className="h-11 rounded-xl border border-input bg-card px-4 text-base focus-visible:ring-3 focus-visible:ring-ring focus-visible:outline-none"
-          >
-            {ROLE_CHOICES.map((choice) => (
-              <option key={choice.role} value={choice.role}>
-                {choice.label}
-              </option>
-            ))}
-          </select>
+          <Select name="role" defaultValue="examiner">
+            <SelectTrigger id="add-role" className="h-11 min-w-56">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ROLE_CHOICES.map((choice) => (
+                <SelectItem key={choice.role} value={choice.role}>
+                  {choice.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <SubmitButton size="lg">Add person</SubmitButton>
       </div>

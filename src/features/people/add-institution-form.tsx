@@ -5,6 +5,7 @@ import { FormMessage } from "@/components/form-message";
 import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { addInstitution } from "./platform-actions";
 
 const KINDS = [
@@ -27,13 +28,18 @@ export function AddInstitutionForm() {
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="inst-kind">Type</Label>
-          <select id="inst-kind" name="kind" defaultValue="college" className="h-11 rounded-xl border border-input bg-card px-4 text-base">
-            {KINDS.map((kind) => (
-              <option key={kind.value} value={kind.value}>
-                {kind.label}
-              </option>
-            ))}
-          </select>
+          <Select name="kind" defaultValue="college">
+            <SelectTrigger id="inst-kind" className="h-11 w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {KINDS.map((kind) => (
+                <SelectItem key={kind.value} value={kind.value}>
+                  {kind.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="inst-city">City</Label>
