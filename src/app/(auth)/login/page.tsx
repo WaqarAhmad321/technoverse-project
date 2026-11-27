@@ -19,7 +19,10 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold tracking-tight">Sign in</h1>
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl font-semibold tracking-tight">Sign in</h1>
+        <p className="text-base text-muted-foreground">Pick up where you left off.</p>
+      </div>
       {notice && <FormMessage tone={notice.tone}>{notice.text}</FormMessage>}
       <SignInForm />
       <DemoButtons />
