@@ -5,11 +5,13 @@ import { can, requireMember, type Member } from "@/lib/access";
 import { examPhase } from "@/lib/exam-rules";
 import type { Difficulty, Exam } from "@/lib/exam-types";
 import { updateExam } from "@/features/authoring/exams/actions";
-import { countStartedAttempts, getExam, listExamQuestions } from "@/features/authoring/exams/data";
+import { runChecklist } from "@/features/authoring/exams/checklist";
+import { countStartedAttempts, getExam, listExamQuestions, loadReview } from "@/features/authoring/exams/data";
 import { getEnrollment } from "@/features/authoring/exams/enrollment-data";
 import { EnrollmentPanel } from "@/features/authoring/exams/enrollment-panel";
 import { ExamForm } from "@/features/authoring/exams/exam-form";
 import { ExamTabs, parseExamTab } from "@/features/authoring/exams/exam-tabs";
+import { ReviewPanel } from "@/features/authoring/exams/review-panel";
 import { BankPicker, MarksTotal, PaperList } from "@/features/authoring/exams/paper-editor";
 import { PHASE_LABEL, formatPakistanTime, toPakistanInputValue } from "@/features/authoring/format";
 import { listQuestions, listTopics } from "@/features/authoring/questions/data";
@@ -78,11 +80,18 @@ export default async function ManageExamPage({ params, searchParams }: { params:
 
       {tab === "candidates" && <EnrollmentPanel examId={exam.id} view={await getEnrollment(member, exam.id)} canEdit={canEdit} />}
 
+      {tab === "review" && <ReviewTab member={member} exam={exam} canEdit={canEdit} startedCount={started} />}
+
       {tab === "questions" && (
         <QuestionsTab member={member} exam={exam} search={search} isEditable={canEdit && !locked} locked={locked} paper={paper} />
       )}
     </div>
   );
+}
+
+async function ReviewTab({ member, exam, canEdit, startedCount }: { member: Member; exam: Exam; canEdit: boolean; startedCount: number }) {
+  const review = await loadReview(member, exam);
+  return <ReviewPanel exam={exam} questions={review.questions} checklist={runChecklist(review)} canEdit={canEdit} startedCount={startedCount} />;
 }
 
 async function QuestionsTab({
