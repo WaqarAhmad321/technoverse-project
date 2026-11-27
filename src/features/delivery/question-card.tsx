@@ -3,6 +3,7 @@
 import { Flag, NotebookPen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { VoiceControls } from "@/components/voice-controls";
 import type { AnswerResponse } from "@/lib/exam-types";
 import { cn } from "@/lib/utils";
 import type { PaperQuestion } from "./attempts";
@@ -32,6 +33,20 @@ export function QuestionCard({ question, total, state, scratch, onAnswer, onScra
       <h2 id={headingId} className="mt-2 text-lg leading-7 font-medium">
         {question.body}
       </h2>
+      <VoiceControls
+        position={question.position}
+        body={question.body}
+        kind={question.kind}
+        options={question.options}
+        textareaId={`answer-${question.question_id}`}
+        onChoose={(optionId) =>
+          onAnswer({
+            ...state,
+            response: { choices: question.kind === "single" ? [optionId] : chosen.includes(optionId) ? chosen : [...chosen, optionId] },
+          })
+        }
+        onDictate={(text) => onAnswer({ ...state, response: { text } })}
+      />
 
       {question.kind === "written" ? (
         <div className="mt-6 flex flex-col gap-1.5">

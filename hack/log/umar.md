@@ -8,3 +8,4 @@
 16:00 cut: dispute desk lists challenges newest first instead of grouping by question; uphold offers accept both or full marks
 16:20 shared: new table ai_marks (AI second marker, advisory); ANTHROPIC_API_KEY in .env.example; added @anthropic-ai/sdk
 16:25 cut: AI re-read on the dispute page for written questions is not built yet
+16:35 shared: voice answers for blind candidates: src/components/voice-controls.tsx (browser speech only), one element in delivery's question-card.tsx and VoiceShortcuts in exam-workspace.tsx (Alt+R read aloud, Alt+V answer by voice)

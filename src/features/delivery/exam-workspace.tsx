@@ -20,6 +20,7 @@ import { savePreferences } from "./actions";
 import type { PaperQuestion, SavedAnswer } from "./attempts";
 import { DisplaySettings, FONT_ZOOM, type WorkspacePrefs } from "./display-settings";
 import { QuestionCard, type AnswerState } from "./question-card";
+import { VoiceShortcuts } from "@/components/voice-controls";
 
 const HEARTBEAT_MS = 10_000;
 const FLUSH_DELAY_MS = 400;
@@ -398,6 +399,7 @@ export function ExamWorkspace(props: WorkspaceProps) {
             </section>
           )}
 
+          <VoiceShortcuts />
           {shown.map((item) => (
             <QuestionCard
               key={item.question_id}
