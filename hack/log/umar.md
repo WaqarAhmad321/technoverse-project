@@ -9,3 +9,4 @@
 16:20 shared: new table ai_marks (AI second marker, advisory); ANTHROPIC_API_KEY in .env.example; added @anthropic-ai/sdk
 16:25 cut: AI re-read on the dispute page for written questions is not built yet
 16:35 shared: voice answers for blind candidates: src/components/voice-controls.tsx (browser speech only), one element in delivery's question-card.tsx and VoiceShortcuts in exam-workspace.tsx (Alt+R read aloud, Alt+V answer by voice)
+16:50 shared: supabase/config.toml local db port 55322 (54322 clashes with another project on umar's laptop); written disputes show the AI re-read and allow raising the mark

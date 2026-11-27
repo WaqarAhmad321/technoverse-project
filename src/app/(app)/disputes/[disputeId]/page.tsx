@@ -2,7 +2,9 @@ import { PageHeader } from "@/components/page-header";
 import { requireMember } from "@/lib/access";
 import { decideDispute } from "@/features/authoring/disputes/actions";
 import { getDispute } from "@/features/authoring/disputes/data";
-import { DecisionForm } from "@/features/authoring/disputes/forms";
+import { DecisionForm, WrittenDecisionForm } from "@/features/authoring/disputes/forms";
+import { Suspense } from "react";
+import { AiOpinion, AiOpinionLoading } from "@/features/authoring/ai/ai-opinion";
 
 export default async function DisputePage({ params }: { params: Promise<{ disputeId: string }> }) {
   const member = await requireMember("examiner", "institution_admin");
@@ -10,6 +12,7 @@ export default async function DisputePage({ params }: { params: Promise<{ disput
   const dispute = await getDispute(member, disputeId);
   const key = (dispute.question.answer_key ?? []).map((id) => id.toUpperCase()).join(", ");
   const chose = dispute.choices.map((id) => id.toUpperCase()).join(", ") || "nothing";
+  const isWritten = dispute.question.kind === "written";
   const others = dispute.question.options.filter((option) => !(dispute.question.answer_key ?? []).includes(option.id));
   return (
     <div className="flex max-w-3xl flex-col gap-4">
@@ -24,13 +27,34 @@ export default async function DisputePage({ params }: { params: Promise<{ disput
           ))}
         </ul>
         <p className="text-base text-muted-foreground">
-          Key: {key || "written"} · The candidate chose {chose} and got {dispute.awarded} of {dispute.question.marks}.
+          {isWritten ? "Written answer" : `Key: ${key} · The candidate chose ${chose}`} · got {dispute.awarded} of {dispute.question.marks}.
         </p>
+        {isWritten && (
+          <div className="flex flex-col gap-1">
+            <p className="text-sm text-muted-foreground">The candidate&apos;s answer</p>
+            <p className="whitespace-pre-line rounded-xl bg-muted px-4 py-3 text-base">{dispute.answerText || "No answer given."}</p>
+          </div>
+        )}
+        <p className="text-sm text-muted-foreground">The candidate&apos;s challenge</p>
         <blockquote className="border-l-2 border-border pl-4 text-base">{dispute.body}</blockquote>
+        {isWritten && (
+          <Suspense fallback={<AiOpinionLoading />}>
+            <AiOpinion
+              member={member}
+              attemptId={dispute.attemptId}
+              questionId={dispute.question_id ?? ""}
+              item={{ body: dispute.question.body, rubric: dispute.question.rubric ?? "", marks: dispute.question.marks, answer: dispute.answerText }}
+            />
+          </Suspense>
+        )}
       </section>
       <section className="rounded-3xl bg-card p-4 md:p-6">
         {dispute.status === "open" ? (
-          <DecisionForm action={decideDispute.bind(null, dispute.id)} options={others} />
+          isWritten ? (
+            <WrittenDecisionForm action={decideDispute.bind(null, dispute.id)} awarded={dispute.awarded} marks={dispute.question.marks} />
+          ) : (
+            <DecisionForm action={decideDispute.bind(null, dispute.id)} options={others} />
+          )
         ) : (
           <p className="text-base">
             {dispute.status === "upheld" ? "Upheld" : "Rejected"}: {dispute.decision_reason}
