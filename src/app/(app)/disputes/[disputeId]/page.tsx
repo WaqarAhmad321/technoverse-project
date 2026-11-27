@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/page-header";
+import { StatusDot } from "@/components/status-dot";
 import { requireMember } from "@/lib/access";
 import { decideDispute } from "@/features/authoring/disputes/actions";
 import { getDispute } from "@/features/authoring/disputes/data";
@@ -18,6 +19,7 @@ export default async function DisputePage({ params }: { params: Promise<{ disput
     <div className="flex max-w-3xl flex-col gap-4">
       <PageHeader back={{ href: "/disputes", label: "Disputes" }} title={`Challenge on Q${dispute.position}`} description={`${dispute.examTitle} · Roll ${dispute.roll}`} />
       <section className="flex flex-col gap-3 rounded-3xl bg-card p-4 md:p-6">
+        <h2 className="text-xl font-medium">The question</h2>
         <p className="text-base font-medium">{dispute.question.body}</p>
         <ul className="flex flex-col gap-1 text-base">
           {dispute.question.options.map((option) => (
@@ -48,7 +50,8 @@ export default async function DisputePage({ params }: { params: Promise<{ disput
           </Suspense>
         )}
       </section>
-      <section className="rounded-3xl bg-card p-4 md:p-6">
+      <section className="flex flex-col gap-4 rounded-3xl bg-card p-4 md:p-6">
+        <h2 className="text-xl font-medium">{dispute.status === "open" ? "Your decision" : "Decision"}</h2>
         {dispute.status === "open" ? (
           isWritten ? (
             <WrittenDecisionForm action={decideDispute.bind(null, dispute.id)} awarded={dispute.awarded} marks={dispute.question.marks} />
@@ -56,9 +59,12 @@ export default async function DisputePage({ params }: { params: Promise<{ disput
             <DecisionForm action={decideDispute.bind(null, dispute.id)} options={others} />
           )
         ) : (
-          <p className="text-base">
-            {dispute.status === "upheld" ? "Upheld" : "Rejected"}: {dispute.decision_reason}
-          </p>
+          <div className="flex flex-col gap-2">
+            <StatusDot tone={dispute.status === "upheld" ? "ready" : "done"} className="text-base text-foreground">
+              {dispute.status === "upheld" ? "Upheld" : "Rejected"}
+            </StatusDot>
+            <p className="text-base text-muted-foreground">{dispute.decision_reason}</p>
+          </div>
         )}
       </section>
     </div>

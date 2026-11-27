@@ -24,7 +24,7 @@ export async function loadKeyDoctor(member: Member, examId: string, attempts: Ma
     Pick<ExamQuestion, "question_id" | "position">[],
     KeyFix[],
   ] = await Promise.all([
-    db().from("attempt_questions").select("attempt_id, question_id, kind, options, answer_key, difficulty, body").eq("institution_id", scope).in("attempt_id", ids).neq("kind", "written").then(unwrap),
+    db().from("attempt_questions").select("attempt_id, question_id, kind, options, answer_key, difficulty, body").eq("institution_id", scope).in("attempt_id", ids).neq("kind", "written").is("variant_key", null).then(unwrap),
     db().from("answers").select("attempt_id, question_id, response").eq("institution_id", scope).in("attempt_id", ids).then(unwrap),
     db().from("grades").select("attempt_id, marks_awarded").eq("institution_id", scope).in("attempt_id", ids).then(unwrap),
     db().from("exam_questions").select("question_id, position").eq("institution_id", scope).eq("exam_id", examId).then(unwrap),
@@ -48,7 +48,12 @@ export async function loadKeyDoctor(member: Member, examId: string, attempts: Ma
     const attempt = doctorAttempts.get(grade.attempt_id);
     if (attempt) attempt.total += Number(grade.marks_awarded);
   }
-  for (const answer of answers) doctorAttempts.get(answer.attempt_id)?.choices.set(answer.question_id, answer.response.choices ?? []);
+  // Only answers to the original wording: an AI version's option letters mean different things.
+  const original = new Set(snapshots.map((row) => `${row.attempt_id}:${row.question_id}`));
+  for (const answer of answers) {
+    if (!original.has(`${answer.attempt_id}:${answer.question_id}`)) continue;
+    doctorAttempts.get(answer.attempt_id)?.choices.set(answer.question_id, answer.response.choices ?? []);
+  }
 
   const snapshotById = new Map(snapshots.map((row) => [row.question_id, row]));
   const resolved = new Set(fixes.map((fix) => fix.question_id));

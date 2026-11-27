@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { FormMessage } from "@/components/form-message";
 import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,10 @@ export function CandidateForm() {
     if (next?.status === "saved") formRef.current?.reset();
     return next;
   }, null);
+
+  useEffect(() => {
+    if (state?.status === "saved") toast.success(`${state.name} is on the roster. They sign in with ${state.email}.`);
+  }, [state]);
 
   function checkBeforeSend(event: React.FormEvent<HTMLFormElement>) {
     const parsed = candidateSchema.safeParse(readCandidateForm(new FormData(event.currentTarget)));
@@ -64,11 +69,6 @@ export function CandidateForm() {
         </div>
       </div>
       {message && <FormMessage tone="error">{message}</FormMessage>}
-      {state?.status === "saved" && !clientError && (
-        <FormMessage tone="done">
-          {state.name} is on the roster. They sign in with {state.email} to see their exams.
-        </FormMessage>
-      )}
       <SubmitButton size="lg" className="self-start">
         Add candidate
       </SubmitButton>
