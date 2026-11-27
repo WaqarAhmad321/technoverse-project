@@ -1,4 +1,4 @@
-import { Activity, Award, Hourglass, CalendarClock, ClipboardList, FilePenLine, Library, NotebookPen, ShieldCheck, UsersRound } from "lucide-react";
+import { Activity, Eye, Award, Hourglass, CalendarClock, ClipboardList, FilePenLine, Library, NotebookPen, ShieldCheck, UsersRound } from "lucide-react";
 import Link from "next/link";
 import { GettingStarted } from "@/components/getting-started";
 import { NoAccessNotice } from "@/components/no-access-notice";
@@ -106,6 +106,7 @@ export default async function HomePage() {
           )}
           {current.roles.includes("institution_admin") && (
             <>
+              <StatTile href="/admin/oversight" icon={Eye} value="Review" label="Examiner oversight" />
               <StatTile href="/admin/people" icon={UsersRound} value={staff.people} label="Roles held by people" />
               <StatTile href="/admin/audit" icon={ShieldCheck} value={staff.auditEvents} label="Recorded actions" />
             </>
