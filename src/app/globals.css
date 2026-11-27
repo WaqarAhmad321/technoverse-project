@@ -129,3 +129,13 @@
     @apply font-sans;
   }
 }
+/* The candidate's high-contrast display setting: stronger ink and lines, same layout. */
+.high-contrast {
+  --muted-foreground: oklch(0.25 0 0);
+  --border: oklch(0.45 0 0);
+  --input: oklch(0.45 0 0);
+  --muted: oklch(0.93 0 0);
+  --card: oklch(1 0 0);
+  --foreground: oklch(0.12 0 0);
+  color: var(--foreground);
+}

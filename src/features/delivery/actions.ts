@@ -4,9 +4,10 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { can, requireMember } from "@/lib/access";
+import { requireUser } from "@/lib/auth";
 import { recordAudit } from "@/lib/audit";
 import { db, unwrap } from "@/lib/db";
-import { startAttempt } from "./attempts";
+import { restartSandbox, startAttempt } from "./attempts";
 import { loadExamForStaff } from "./data";
 
 export async function startExam(formData: FormData): Promise<void> {
@@ -56,4 +57,29 @@ export async function sendAnnouncement(_previous: AnnouncementState, formData: F
   await recordAudit(member, "announcement.sent", announcement?.id ?? null, { exam_id: exam.id, body: parsed.data.body });
   revalidatePath(`/monitor/${exam.id}`);
   return { status: "sent", message: "Sent. Candidates see it within a few seconds." };
+}
+
+const prefsSchema = z.object({
+  font_scale: z.enum(["normal", "large", "larger"]),
+  contrast: z.enum(["normal", "high"]),
+  layout: z.enum(["one_at_a_time", "all_on_one_page"]),
+});
+
+export async function savePreferences(prefs: unknown): Promise<void> {
+  const user = await requireUser();
+  const parsed = prefsSchema.safeParse(prefs);
+  if (!parsed.success) return;
+  unwrap(
+    await db()
+      .from("preferences")
+      .upsert({ user_id: user.id, ...parsed.data, updated_at: new Date().toISOString() }, { onConflict: "user_id" }),
+  );
+}
+
+export async function restartPreview(formData: FormData): Promise<void> {
+  const member = await requireMember("examiner", "institution_admin");
+  const examId = z.uuid().safeParse(formData.get("examId"));
+  if (!examId.success) redirect("/manage");
+  await restartSandbox(member, examId.data);
+  redirect(`/exams/${examId.data}/take?preview=1`);
 }

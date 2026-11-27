@@ -89,3 +89,13 @@ test("the institution admin makes a candidate an examiner, but cannot drop her o
   await page.getByRole("button", { name: "Save roles" }).click();
   await expect(page.getByRole("row", { name: /Ayesha Khan/ }).getByText("Candidate", { exact: true })).toBeVisible({ timeout: SAVE_MS });
 });
+
+test("an examiner previews a draft exam as a candidate, and it is not recorded", async ({ page, world }) => {
+  expect(world.examiner.email).toContain("@");
+  await page.goto("/manage");
+  await page.getByRole("link", { name: /Physics Midterm/ }).first().click();
+  await page.getByRole("link", { name: "Preview as candidate" }).click();
+  await expect(page.getByText("Preview: nothing you do here is recorded as a real attempt.")).toBeVisible();
+  await expect(page.getByRole("timer")).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Question 13,/ })).toBeVisible();
+});

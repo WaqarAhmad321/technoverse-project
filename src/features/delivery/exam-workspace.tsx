@@ -2,7 +2,7 @@
 
 // Rendered only in the browser (see exam-workspace-loader): it reads answers kept on this phone at start.
 
-import { Check, CircleAlert, Clock, Flag, Megaphone, WifiOff } from "lucide-react";
+import { Check, CircleAlert, Clock, Eye, Flag, Megaphone, WifiOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -14,11 +14,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import type { AnswerResponse } from "@/lib/exam-types";
 import { cn } from "@/lib/utils";
 import { clearAttemptStorage, loadQueue, nextSeq, storeQueue, type AnswerQueue, type QueuedAnswer } from "./answer-queue";
+import { savePreferences } from "./actions";
 import type { PaperQuestion, SavedAnswer } from "./attempts";
+import { DisplaySettings, FONT_ZOOM, type WorkspacePrefs } from "./display-settings";
+import { QuestionCard, type AnswerState } from "./question-card";
 
 const HEARTBEAT_MS = 10_000;
 const FLUSH_DELAY_MS = 400;
@@ -27,20 +28,25 @@ const TICK_MS = 1_000;
 const LOW_TIME_MS = 5 * 60 * 1_000;
 const MS_PER_SECOND = 1_000;
 const SECONDS_PER_MINUTE = 60;
+const SLOW_ROUND_TRIP_MS = 1_500;
+const SCRATCH_DELAY_MS = 800;
 
 type Announcement = { id: string; body: string; question_position: number | null; created_at: string };
-type AnswerState = { response: AnswerResponse; marked: boolean };
 type ServerState = { status: string; deadline: string; server_now: string; receipt_code: string | null };
 
 type WorkspaceProps = {
   attemptId: string;
-  examId: string;
   examTitle: string;
   paper: PaperQuestion[];
   saved: SavedAnswer[];
   deadline: string;
   serverNow: string;
   announcements: Announcement[];
+  finishedUrl: string;
+  isPreview: boolean;
+  preferences: WorkspacePrefs;
+  scratch: Record<string, string>;
+  restartPreview?: React.ReactNode;
 };
 
 function isAnswered(state: AnswerState | undefined): boolean {
@@ -84,9 +90,9 @@ function readAnnouncements(value: unknown): Announcement[] | null {
 }
 
 export function ExamWorkspace(props: WorkspaceProps) {
-  const { attemptId, examId, examTitle, paper } = props;
+  const { attemptId, examTitle, paper } = props;
   const router = useRouter();
-  const receiptUrl = `/exams/${examId}/receipt`;
+  const receiptUrl = props.finishedUrl;
 
   const [initialQueue] = useState<AnswerQueue>(() => loadQueue(attemptId));
   const [answers, setAnswers] = useState<Record<string, AnswerState>>(() => ({
@@ -106,6 +112,10 @@ export function ExamWorkspace(props: WorkspaceProps) {
   const [isReviewOpen, setIsReviewOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitProblem, setSubmitProblem] = useState<string | null>(null);
+  const [prefs, setPrefs] = useState<WorkspacePrefs>(props.preferences);
+  const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
+  const [roundTripMs, setRoundTripMs] = useState<number | null>(null);
+  const scratchTimers = useRef<Record<string, number>>({});
 
   const pendingRef = useRef<AnswerQueue>(initialQueue);
   const flushRef = useRef<() => Promise<boolean>>(async () => true);
@@ -166,6 +176,7 @@ export function ExamWorkspace(props: WorkspaceProps) {
         Object.entries(pendingRef.current).filter(([, op]) => !savedSeqs.has(op.client_seq)),
       );
       updatePending(remaining);
+      setLastSavedAt(Date.now());
       retryCount.current = 0;
       setIsOnline(true);
       applyServerState(state);
@@ -198,7 +209,9 @@ export function ExamWorkspace(props: WorkspaceProps) {
 
   const heartbeat = useCallback(async () => {
     try {
+      const sentAt = Date.now();
       const response = await fetch(`/api/attempts/${attemptId}/heartbeat`, { method: "POST" });
+      setRoundTripMs(Date.now() - sentAt);
       const body: unknown = await response.json().catch(() => null);
       const state = readServerState(body);
       if (!response.ok || !state) throw new Error(`Heartbeat failed with ${response.status}`);
@@ -259,6 +272,33 @@ export function ExamWorkspace(props: WorkspaceProps) {
     scheduleFlush();
   }
 
+  function recordScratch(questionId: string, text: string) {
+    const key = `imtihaan:scratch:${attemptId}:${questionId}`;
+    try {
+      window.localStorage.setItem(key, text);
+    } catch {
+      // Rough work still goes to the server below; only the phone copy is skipped.
+    }
+    window.clearTimeout(scratchTimers.current[questionId]);
+    scratchTimers.current[questionId] = window.setTimeout(() => {
+      void fetch(`/api/attempts/${attemptId}/scratch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question_id: questionId, body: text }),
+      }).catch(() => undefined);
+    }, SCRATCH_DELAY_MS);
+  }
+
+  function changePrefs(next: WorkspacePrefs) {
+    setPrefs(next);
+    void savePreferences(next);
+  }
+
+  function goToQuestion(itemIndex: number, position: number) {
+    setIndex(itemIndex);
+    if (prefs.layout === "all_on_one_page") document.getElementById(`question-${position}`)?.scrollIntoView({ block: "start" });
+  }
+
   async function submit() {
     setIsSubmitting(true);
     setSubmitProblem(null);
@@ -287,11 +327,24 @@ export function ExamWorkspace(props: WorkspaceProps) {
   const isLowTime = remainingMs < LOW_TIME_MS;
 
   if (!question) return null;
-  const current = answers[question.question_id] ?? { response: {}, marked: false };
+  const stateOf = (questionId: string): AnswerState => answers[questionId] ?? { response: {}, marked: false };
+  const shown = prefs.layout === "all_on_one_page" ? paper : [question];
+  const secondsSinceSave = lastSavedAt === null ? null : Math.round((now - lastSavedAt) / MS_PER_SECOND);
+  const isSlow = roundTripMs !== null && roundTripMs > SLOW_ROUND_TRIP_MS;
 
   return (
-    <div className="flex flex-col gap-4 pb-28">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+    <div className={cn("flex flex-col gap-4 pb-28", prefs.contrast === "high" && "high-contrast")}>
+      {props.isPreview && (
+        <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-3xl bg-secondary px-4 py-3">
+          <span className="flex items-center gap-2 text-base">
+            <Eye aria-hidden className="size-5" />
+            Preview: nothing you do here is recorded as a real attempt.
+          </span>
+          {props.restartPreview}
+        </div>
+      )}
+      <DisplaySettings prefs={prefs} onChange={changePrefs} />
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start" style={{ zoom: FONT_ZOOM[prefs.font_scale] }}>
         <div className="flex min-w-0 flex-1 flex-col gap-4">
           {announcements.length > 0 && (
             <section aria-label="Announcements" aria-live="polite" className="flex flex-col gap-2 rounded-3xl bg-card p-4 md:p-6">
@@ -307,76 +360,17 @@ export function ExamWorkspace(props: WorkspaceProps) {
             </section>
           )}
 
-          <article aria-labelledby="question-text" className="rounded-3xl bg-card p-6 md:p-8">
-            <p className="text-sm text-muted-foreground">
-              Question {question.position} of {paper.length} · {question.marks} {question.marks === 1 ? "mark" : "marks"}
-              {question.kind === "multiple" ? " · choose all that apply" : ""}
-            </p>
-            <h2 id="question-text" className="mt-2 text-lg leading-7 font-medium">
-              {question.body}
-            </h2>
-
-            {question.kind === "written" ? (
-              <div className="mt-6 flex flex-col gap-1.5">
-                <label htmlFor="written-answer" className="text-sm font-medium">
-                  Your answer
-                </label>
-                <Textarea
-                  id="written-answer"
-                  key={question.question_id}
-                  defaultValue={current.response.text ?? ""}
-                  rows={8}
-                  onChange={(event) => record(question.question_id, { ...current, response: { text: event.target.value } })}
-                />
-              </div>
-            ) : (
-              <fieldset className="mt-6 space-y-2">
-                <legend className="sr-only">Options</legend>
-                {question.options.map((option, optionIndex) => {
-                  const chosen = current.response.choices ?? [];
-                  const isChosen = chosen.includes(option.id);
-                  const letter = String.fromCharCode("A".charCodeAt(0) + optionIndex);
-                  const nextChoices =
-                    question.kind === "single"
-                      ? [option.id]
-                      : isChosen
-                        ? chosen.filter((id) => id !== option.id)
-                        : [...chosen, option.id];
-                  return (
-                    <label
-                      key={option.id}
-                      className={cn(
-                        "flex min-h-14 cursor-pointer items-center gap-3 rounded-xl bg-muted px-4 text-base transition-colors duration-200 ease-out hover:bg-accent has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring",
-                        isChosen && "bg-primary/10 ring-2 ring-primary hover:bg-primary/10",
-                      )}
-                    >
-                      <input
-                        type={question.kind === "single" ? "radio" : "checkbox"}
-                        name={`question-${question.question_id}`}
-                        checked={isChosen}
-                        onChange={() => record(question.question_id, { ...current, response: { choices: nextChoices } })}
-                        className="size-5 accent-primary"
-                      />
-                      <span className="w-4 text-sm text-muted-foreground">{letter}</span>
-                      <span>{option.text}</span>
-                    </label>
-                  );
-                })}
-              </fieldset>
-            )}
-
-            <div className="mt-6">
-              <Button
-                type="button"
-                variant={current.marked ? "secondary" : "ghost"}
-                aria-pressed={current.marked}
-                onClick={() => record(question.question_id, { ...current, marked: !current.marked })}
-              >
-                <Flag aria-hidden className="size-4" />
-                {current.marked ? "Marked for review" : "Mark for review"}
-              </Button>
-            </div>
-          </article>
+          {shown.map((item) => (
+            <QuestionCard
+              key={item.question_id}
+              question={item}
+              total={paper.length}
+              state={stateOf(item.question_id)}
+              scratch={props.scratch[item.question_id] ?? ""}
+              onAnswer={(next) => record(item.question_id, next)}
+              onScratch={(text) => recordScratch(item.question_id, text)}
+            />
+          ))}
         </div>
 
         <aside aria-label="Questions and time" className="flex flex-col gap-4 rounded-3xl bg-card p-4 lg:sticky lg:top-20 lg:w-72">
@@ -405,7 +399,7 @@ export function ExamWorkspace(props: WorkspaceProps) {
                       type="button"
                       aria-label={label}
                       aria-current={isCurrent ? "step" : undefined}
-                      onClick={() => setIndex(itemIndex)}
+                      onClick={() => goToQuestion(itemIndex, item.position)}
                       className={cn(
                         "relative flex size-11 items-center justify-center rounded-full text-sm font-medium transition-colors duration-200 ease-out focus-visible:ring-3 focus-visible:ring-ring focus-visible:outline-none",
                         answered ? "bg-primary/15 text-foreground" : "bg-muted text-muted-foreground",
@@ -432,6 +426,8 @@ export function ExamWorkspace(props: WorkspaceProps) {
             <SaveStatus isOnline={isOnline} isSending={isSending} pendingCount={pendingCount} />
             <span className="text-sm text-muted-foreground">
               {answeredCount} of {paper.length} answered
+              {secondsSinceSave !== null && isOnline && pendingCount === 0 ? ` · last saved ${secondsSinceSave} s ago` : ""}
+              {isSlow && isOnline ? " · slow connection, saves still arrive" : ""}
             </span>
           </div>
           <div className="flex gap-2">
