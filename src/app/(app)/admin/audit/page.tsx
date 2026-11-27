@@ -12,6 +12,11 @@ import { formatPkt } from "@/lib/format";
 
 const ACTION_LABELS: Record<string, string> = {
   "role.changed": "Changed someone's roles",
+  "invitation.sent": "Invited someone",
+  "invitation.revoked": "Revoked an invitation",
+  "invitation.accepted": "Accepted an invitation",
+  "join.approved": "Approved a request to join",
+  "join.declined": "Declined a request to join",
   "exam.published": "Published an exam",
   "key.fixed": "Corrected an answer key",
   "results.published": "Published results",

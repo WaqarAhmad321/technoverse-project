@@ -1,4 +1,5 @@
-import { expect, test } from "./account";
+import { randomUUID } from "node:crypto";
+import { expect, removeAccount, test } from "./account";
 
 const SYNC_AFTER_OUTAGE_MS = 20_000;
 // Starting builds the candidate's paper: several database round trips, slow from a laptop far from the database.
@@ -103,4 +104,29 @@ test("an examiner previews a draft exam as a candidate, and it is not recorded",
   await expect(page.getByText("Preview: nothing you do here is recorded as a real attempt.")).toBeVisible();
   await expect(page.getByRole("timer")).toBeVisible();
   await expect(page.getByRole("button", { name: /^Question 13,/ })).toBeVisible();
+});
+
+test("the admin invites a new email as examiner, and that person signs up as an examiner", async ({ page, browser, world }) => {
+  const invited = { name: "Sana Farooq", email: `inv-${randomUUID()}@imtihaan.test`, password: randomUUID() };
+
+  await page.goto("/admin/people");
+  await expect(page.getByRole("row", { name: new RegExp(world.examiner.name) })).toBeVisible();
+  await page.getByLabel("Email", { exact: true }).first().fill(invited.email);
+  await page.getByRole("button", { name: "Invite someone" }).click();
+  await expect(page.getByRole("region", { name: "Pending invitations" }).getByText(invited.email)).toBeVisible({ timeout: SAVE_MS });
+
+  const newcomer = await browser.newPage();
+  try {
+    await newcomer.goto("/sign-up");
+    await newcomer.getByLabel("Your name").fill(invited.name);
+    await newcomer.getByLabel("Email").fill(invited.email);
+    await newcomer.getByLabel("Password").fill(invited.password);
+    await newcomer.getByLabel("Sit exams my institution gives me").check();
+    await newcomer.getByRole("button", { name: "Create account" }).click();
+    await expect(newcomer).toHaveURL(/\/home$/, { timeout: SAVE_MS });
+    await expect(newcomer.getByText("Examiner", { exact: true }).first()).toBeVisible();
+  } finally {
+    await newcomer.close();
+    await removeAccount(invited);
+  }
 });

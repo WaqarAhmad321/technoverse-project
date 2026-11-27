@@ -17,3 +17,6 @@ export const ROLE_CHOICES: { role: Role; label: string; description: string }[] 
   { role: "invigilator", label: "Invigilator", description: "Watches live exams on the monitor. Sees no answers and no marks." },
   { role: "observer", label: "Observer", description: "Reads the audit log, read-only. Changes nothing." },
 ];
+
+// Roles a person may ask for themselves. Admin is given by an admin, and candidates join by roster or link.
+export const REQUESTABLE_ROLES = ["examiner", "controller", "invigilator", "observer"] as const;
