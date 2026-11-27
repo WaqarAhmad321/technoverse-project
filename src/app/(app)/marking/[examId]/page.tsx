@@ -9,7 +9,7 @@ import { getExam } from "@/features/authoring/exams/data";
 import { PublishForm } from "@/features/authoring/exams/publish-form";
 import { formatPakistanTime, plural } from "@/features/authoring/format";
 import { markObjectiveAnswers } from "@/features/authoring/marking/actions";
-import { autoGradeObjective } from "@/features/authoring/marking/auto-grade";
+import { autoGradeObjective, hasAutoGrades } from "@/features/authoring/marking/auto-grade";
 import { listFinishedAttempts } from "@/features/authoring/marking/data";
 import { loadKeyDoctor } from "@/features/authoring/marking/key-doctor-data";
 import { publishResults } from "@/features/authoring/marking/results-actions";
@@ -48,7 +48,8 @@ export default async function MarkingPage({ params, searchParams }: { params: Pr
   const exam = await getExam(member, examId);
   const attempts = await listFinishedAttempts(member, exam.id);
   // Opening a closed exam marks its objective answers, so the examiner never starts from a blank sheet.
-  if (examPhase(exam) === "closed") await autoGradeObjective(member, exam.id, attempts);
+  const attemptIds = attempts.map((attempt) => attempt.id);
+  if (examPhase(exam) === "closed" && !(await hasAutoGrades(member, attemptIds))) await autoGradeObjective(member, exam.id, attempts);
   const rolls = new Map(attempts.map((attempt) => [attempt.id, attempt.candidate?.roll_number ?? ""]));
   const [queue, doctor, scores, secondLooks] = await Promise.all([
     loadWrittenQueue(member, attempts),
