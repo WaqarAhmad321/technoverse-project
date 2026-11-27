@@ -35,7 +35,9 @@ export type Institution = Owned & {
   name: string;
   kind: InstitutionKind;
   city: string;
-  status: "active" | "suspended";
+  status: "active" | "pending" | "suspended" | "rejected";
+  review_note?: string | null;
+  reviewed_at?: string | null;
 };
 
 export type Membership = InInstitution & {

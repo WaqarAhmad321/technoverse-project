@@ -1,10 +1,12 @@
-import { Activity, Award, CalendarClock, ClipboardList, FilePenLine, Library, NotebookPen, ShieldCheck, UsersRound } from "lucide-react";
+import { Activity, Award, Hourglass, CalendarClock, ClipboardList, FilePenLine, Library, NotebookPen, ShieldCheck, UsersRound } from "lucide-react";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { StatTile } from "@/components/stat-tile";
 import { Button } from "@/components/ui/button";
 import { getAccess } from "@/lib/access";
 import { formatPkt } from "@/lib/format";
+import { AttentionList } from "@/components/attention-list";
+import { candidateAttention, controllerAttention, examinerAttention } from "@/lib/attention";
 import { loadCandidateSummary, loadStaffSummary } from "@/lib/home-data";
 
 export default async function HomePage() {
@@ -14,20 +16,38 @@ export default async function HomePage() {
   const member = current ? { user: access.user, profile: access.profile, institution: current.institution, roles: current.roles } : null;
   const isStaff = current?.roles.some((role) => role !== "candidate") ?? false;
   const isCandidate = current?.roles.includes("candidate") ?? false;
-  const [staff, candidate] = await Promise.all([
+  const roles = current?.roles ?? [];
+  const [staff, candidate, attention] = await Promise.all([
     member && isStaff ? loadStaffSummary(member) : null,
     member && isCandidate ? loadCandidateSummary(member) : null,
+    member
+      ? Promise.all([
+          roles.includes("controller") ? controllerAttention(member) : [],
+          roles.includes("examiner") ? examinerAttention(member) : [],
+          roles.includes("candidate") ? candidateAttention(member) : [],
+        ]).then((lists) => lists.flat())
+      : [],
   ]);
 
   return (
     <div className="flex flex-col gap-8">
       <PageHeader title={`Welcome, ${firstName}`} description={current?.institution.name ?? (access.profile.is_super_admin ? "Platform admin" : undefined)} />
 
+      {current?.institution.status === "pending" && (
+        <p className="flex items-start gap-3 rounded-3xl bg-primary/10 p-5 text-base">
+          <Hourglass aria-hidden className="mt-0.5 size-5 shrink-0 text-primary" />
+          {current.institution.name} is waiting for platform approval. You can set up questions, rosters and exams now; publishing opens once it is approved.
+        </p>
+      )}
       {access.suspended && <p className="rounded-3xl bg-card p-6 text-base">Your institution is suspended. Ask the platform admin to reactivate it.</p>}
       {!current && !access.suspended && !access.profile.is_super_admin && (
         <p className="rounded-3xl bg-card p-6 text-base">
           You are not on an institution&apos;s roster yet. Ask your examiner to add {access.profile.email}, then sign in again.
         </p>
+      )}
+
+      {member && (
+        <AttentionList items={attention} empty="You are all caught up. New marking, approvals, challenges and results will show up here." />
       )}
 
       {candidate && (

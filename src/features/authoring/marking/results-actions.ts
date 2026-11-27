@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { can, requireMember } from "@/lib/access";
+import { APPROVAL_BLOCK_MESSAGE, approvalGate, isApproved } from "@/lib/approvals";
 import { recordAudit } from "@/lib/audit";
 import { db, unwrap } from "@/lib/db";
 import { getExam } from "../exams/data";
@@ -20,6 +21,7 @@ export async function publishResults(examId: string): Promise<PublishResultsStat
   const attempts = await listFinishedAttempts(member, exam.id);
   const doctor = await loadKeyDoctor(member, exam.id, attempts);
   if (doctor.open.length > 0) return { status: "error", message: `Resolve ${doctor.open.length} flagged question first.` };
+  if (!isApproved(await approvalGate(member, exam.id, "results"))) return { status: "error", message: APPROVAL_BLOCK_MESSAGE.results };
 
   const publishedAt = new Date().toISOString();
   const claimed: { id: string }[] = unwrap(

@@ -2,6 +2,7 @@ import {
   Activity,
   Award,
   Building2,
+  ClipboardCheck,
   ClipboardList,
   LayoutDashboard,
   Library,
@@ -18,6 +19,7 @@ const ICON_BY_HREF: Record<string, LucideIcon> = {
   "/manage": ClipboardList,
   "/questions": Library,
   "/roster": Users,
+  "/marking": ClipboardCheck,
   "/disputes": Scale,
   "/exams": NotebookPen,
   "/results": Award,
@@ -25,6 +27,7 @@ const ICON_BY_HREF: Record<string, LucideIcon> = {
   "/admin/people": UsersRound,
   "/admin/audit": ShieldCheck,
   "/platform": Building2,
+  "/approvals": ShieldCheck,
 };
 
 // A screen without its own icon still gets a sensible one, so a new nav line never renders bare.

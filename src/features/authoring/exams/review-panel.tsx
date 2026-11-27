@@ -6,6 +6,7 @@ import type { Checklist } from "./checklist";
 import type { ReviewQuestion } from "./data";
 import { publishExam, unpublishExam } from "./publish-actions";
 import { PublishForm } from "./publish-form";
+import { ApprovalPanel } from "@/features/governance/approval-panel";
 
 type ReviewPanelProps = {
   exam: Exam;
@@ -55,6 +56,7 @@ function ChecklistSection({ exam, checklist, canEdit, startedCount }: Omit<Revie
           </li>
         ))}
       </ul>
+      {canEdit && !isPublished && <ApprovalPanel examId={exam.id} kind="paper" />}
       {canEdit && !isPublished && (
         <PublishForm
           action={publishExam.bind(null, exam.id)}

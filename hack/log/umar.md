@@ -14,3 +14,4 @@
 17:05 shared: questions.variants jsonb + attempt_questions.variant_key; buildPaper (same signature) picks the original or an approved variant per seed, so delivery's start code needed no change
 17:05 decided: key fixes and the Key Doctor look only at the original wording; an AI variant keeps its own twice-checked key
 17:50 decided: AI moderator on the Review and publish tab (replaces task 170): blind answers, ambiguity, out-of-syllabus; advisory only, stored in exams.settings.moderation, never blocks publishing
+17:55 shared: nav line /marking (Marking list page) + its icon in nav-icons.tsx; marking page split into 4 step tabs; written queue starts at the lowest roll number

@@ -42,3 +42,34 @@ export async function loadInstitutions(): Promise<InstitutionSummary[]> {
     examCount: exams.filter((row) => row.institution_id === institution.id).length,
   }));
 }
+
+export type InstitutionDetail = {
+  institution: Institution;
+  members: { name: string; email: string; roles: string[] }[];
+  examCount: number;
+  publishedCount: number;
+  candidateCount: number;
+};
+
+// The platform admin sees who runs an institution and how big it is, never exam content.
+export async function loadInstitutionDetail(institutionId: string): Promise<InstitutionDetail | null> {
+  const institution: Institution | null = unwrap(await db().from("institutions").select("*").eq("id", institutionId).maybeSingle());
+  if (!institution) return null;
+  const [memberships, exams, candidates]: [Membership[], { status: string }[], { id: string }[]] = await Promise.all([
+    db().from("memberships").select("*").eq("institution_id", institutionId).eq("active", true).then(unwrap),
+    db().from("exams").select("status").eq("institution_id", institutionId).then(unwrap),
+    db().from("candidates").select("id").eq("institution_id", institutionId).then(unwrap),
+  ]);
+  const ids = [...new Set(memberships.map((row) => row.member_id))];
+  const profiles: Pick<Profile, "id" | "display_name" | "email">[] =
+    ids.length === 0 ? [] : unwrap(await db().from("profiles").select("id, display_name, email").in("id", ids));
+  return {
+    institution,
+    members: profiles
+      .map((profile) => ({ name: profile.display_name, email: profile.email, roles: memberships.filter((row) => row.member_id === profile.id).map((row) => row.role) }))
+      .sort((a, b) => a.name.localeCompare(b.name)),
+    examCount: exams.length,
+    publishedCount: exams.filter((exam) => exam.status === "published").length,
+    candidateCount: candidates.length,
+  };
+}

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { can, requireMember } from "@/lib/access";
+import { APPROVAL_BLOCK_MESSAGE, approvalGate, institutionCanPublish, isApproved } from "@/lib/approvals";
 import { recordAudit } from "@/lib/audit";
 import { db, unwrap } from "@/lib/db";
 import { runChecklist } from "./checklist";
@@ -26,6 +27,9 @@ export async function publishExam(examId: string): Promise<PublishState> {
   const checklist = runChecklist(await loadReview(member, exam));
   const failing = checklist.lines.find((line) => !line.ok);
   if (failing) return { status: "error", message: `Not published: ${failing.text}.` };
+  const institutionBlock = institutionCanPublish(member);
+  if (institutionBlock) return { status: "error", message: institutionBlock };
+  if (!isApproved(await approvalGate(member, exam.id, "paper"))) return { status: "error", message: APPROVAL_BLOCK_MESSAGE.paper };
 
   const publishedAt = new Date().toISOString();
   const changed: { id: string }[] = unwrap(
