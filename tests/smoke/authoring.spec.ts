@@ -136,6 +136,8 @@ test("opening a closed exam marks every objective answer, and marking again chan
   await expect(steps).toContainText("Key check · 1 to resolve", { timeout: 20_000 });
   await steps.getByRole("link", { name: /Question analytics/ }).click();
   await expect(page.getByRole("list", { name: "Question analytics" })).toContainText("Q7");
+  await page.getByRole("button", { name: "Write the teaching report" }).click();
+  await expect(page.getByText("What the class misunderstood")).toBeVisible({ timeout: 20_000 });
   await steps.getByRole("link", { name: /Results/ }).click();
   const attempts = page.getByRole("list", { name: "Attempts" });
   const before = await attempts.innerText();

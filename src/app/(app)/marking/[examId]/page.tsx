@@ -1,5 +1,7 @@
 import { ChartColumn, ClipboardCheck, Sparkles, Stethoscope } from "lucide-react";
 import { FeatureSpotlight } from "@/components/feature-spotlight";
+import { createTeachingReport } from "@/features/authoring/ai/teaching-report-actions";
+import { TeachingReportPanel } from "@/features/authoring/ai/teaching-report-panel";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/states";
@@ -148,6 +150,7 @@ export default async function MarkingPage({ params, searchParams }: { params: Pr
               answer="For every question: how many got it right, whether it separated strong from weak candidates, what the top scorers chose, and where the labelled difficulty was wrong."
             />
           )}
+          {tab === "analytics" && <TeachingReportPanel action={createTeachingReport.bind(null, exam.id)} />}
           {tab === "analytics" && <AnalyticsSection examId={exam.id} rows={doctor.analytics} page={search.page} />}
         </>
       )}

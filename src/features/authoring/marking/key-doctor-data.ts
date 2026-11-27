@@ -6,7 +6,7 @@ import type { Answer, AttemptQuestion, ExamQuestion, KeyFix, QuestionOption } fr
 import { questionStats, runKeyDoctor, type DoctorAttempt, type DoctorFlag, type DoctorQuestion, type QuestionStats } from "../key-doctor";
 import type { MarkingAttempt } from "./data";
 
-export type AnalyticsRow = QuestionStats & { label: string; body: string };
+export type AnalyticsRow = QuestionStats & { label: string; body: string; options: QuestionOption[]; key: string[] };
 export type KeyDoctorView = { open: (DoctorFlag & { options: QuestionOption[] })[]; fixes: KeyFix[]; analytics: AnalyticsRow[] };
 
 type SnapshotRow = Pick<AttemptQuestion, "attempt_id" | "question_id" | "kind" | "options" | "answer_key" | "difficulty" | "body">;
@@ -65,6 +65,8 @@ export async function loadKeyDoctor(member: Member, examId: string, attempts: Ma
     ...stats,
     label: snapshotById.get(stats.question_id)?.difficulty ?? "medium",
     body: snapshotById.get(stats.question_id)?.body ?? "",
+    options: questions.get(stats.question_id)?.options ?? [],
+    key: questions.get(stats.question_id)?.answer_key ?? [],
   }));
   return { open, fixes, analytics };
 }
