@@ -4,9 +4,9 @@ The shared-core step of `/shape` writes the reset command. `/demo` writes the re
 
 ## Reset the demo data
 
-Command:
+Command: `scripts/db reset-demo` (needs `.env.local`). The next "Try as …" click rebuilds Ravi Science College.
 
-Records the script uses:
+Records the script uses: Kamran Siddiqui (examiner), Ayesha Khan (candidate, roll 0231), Sana Iqbal (institution admin), Farah Naveed (platform admin), Bilal Ahmed (promoted in step 2); Physics Midterm (draft, 45 of 50 marks), Waves Practice Quiz (open), Physics Quiz 1 (30 attempts, Q7 key wrong), Physics Pre-test (results published).
 
 ## The script
 

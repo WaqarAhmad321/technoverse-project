@@ -24,7 +24,7 @@ What everyone starts from. Adding to it is free; changing it means fixing every 
 - **Current institution:** the person's first active membership. A switcher is an extra; the cookie name is reserved: `imtihaan-institution`.
 - **Sign-up:** "I set exams" creates a new institution owned by the person, makes them its `institution_admin` and `examiner`, and seeds it. "I am a candidate" creates only the profile; at every sign-in the shared core adds a `candidate` membership for each institution whose roster has their email.
 - **Demo accounts:** the landing page has "Try as examiner", "Try as candidate" and "Try as admin", and a small "Platform admin" link. All four share `DEMO_PASSWORD`; emails are `DEMO_EMAIL` with a tag (`+examiner`, `+candidate`, `+admin`, `+platform`). The first click creates the demo institution "Ravi Science College, Lahore" with all of them plus Bilal Ahmed (a candidate account the admin promotes in step 2). If a demo account exists with an old password, the sign-in resets it to the current `DEMO_PASSWORD`. Names and emails: `src/lib/demo-accounts.ts`.
-- **Navigation:** `src/lib/nav.ts`, one line per screen with the roles that see it. `/home` sends each person to their first screen: examiner `/manage`, candidate `/exams`, institution admin `/admin/people`, super admin `/platform`.
+- **Navigation:** `src/lib/nav.ts`, one line per screen with the roles that see it (`audience`). `/home` greets the person and shows their screens from the nav as buttons, so a new nav line appears there too.
 - **Shared exam rules (`src/lib/exam-rules.ts`, pure):** `examPhase(exam, now)` → `draft | upcoming | open | closed`; `attemptDeadline(attempt)` = `deadline_at + credit_seconds`; `isAttemptFinished(attempt, now)`; `answerCounts(answer, attempt)` (received before the deadline). Both slices use these, so "ongoing" and "late" mean the same everywhere.
 - **The paper (`src/lib/paper.ts`):** `buildPaper(exam, items, seed)` → the ordered snapshot rows for one attempt, shuffling questions and options from the seed when the exam says so. Delivery calls it when an attempt starts. Authoring may swap its insides for equal-difficulty selection, keeping the signature.
 - **Audit (`src/lib/audit.ts`):** `recordAudit(member, action, entityId, payload)` appends to a per-institution hash chain. Call it for every publish, key change, regrade, role change and institution change.
@@ -246,7 +246,7 @@ Every table: `id uuid primary key default gen_random_uuid()`, `user_id uuid not 
 Seeded into every new institution by `src/lib/seed-world.ts`. All names fictional.
 
 - **Roster:** Ayesha Khan (roll 0231, the demo candidate's email) and 30 more Lahore students, CNICs masked, one with 25% extra time. Bilal Ahmed has an account (candidate) in the demo institution.
-- **Question bank:** 20 Physics questions across Kinematics, Forces, Energy and Waves; easy, medium and hard; single, multiple and written.
+- **Question bank:** 21 Physics questions across Kinematics, Forces, Energy and Waves; easy, medium and hard; single, multiple and written.
 - **Physics Midterm:** draft, open from an hour ago for seven days, 30 minutes, total 50, but its questions add up to 45 (the checklist catches it in step 3). Everyone enrolled.
 - **Waves Practice Quiz:** published and open now, 15 minutes, everyone enrolled. Delivery's always-open exam.
 - **Physics Quiz 1:** closed yesterday, 30 submitted attempts with answers and no grades yet. Q7's key is C, but most top scorers chose B (the Key Doctor's case). One written question.

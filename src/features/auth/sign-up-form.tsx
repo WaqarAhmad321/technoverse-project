@@ -35,6 +35,24 @@ export function SignUpForm() {
           At least 8 characters.
         </p>
       </div>
+      <fieldset className="flex flex-col gap-2">
+        <legend className="mb-2 text-base font-medium">What will you do here?</legend>
+        <label className="flex min-h-11 items-center gap-3 text-base">
+          <input type="radio" name="kind" value="examiner" defaultChecked className="size-5 accent-primary" />
+          Set and mark exams for my institution
+        </label>
+        <label className="flex min-h-11 items-center gap-3 text-base">
+          <input type="radio" name="kind" value="candidate" className="size-5 accent-primary" />
+          Sit exams my institution gives me
+        </label>
+      </fieldset>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="institutionName">Institution name</Label>
+        <Input id="institutionName" name="institutionName" maxLength={80} aria-describedby="institution-hint" />
+        <p id="institution-hint" className="text-base text-muted-foreground">
+          Only if you set exams. Leave it empty to name it after you.
+        </p>
+      </div>
       {state && <FormMessage tone="error">{state.error}</FormMessage>}
       <SubmitButton size="lg">Create account</SubmitButton>
     </form>

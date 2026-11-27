@@ -1,11 +1,27 @@
 import { expect, test } from "./account";
 
-test("a visitor gets into the product with one click on the demo", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "Try the demo" }).click();
+// The very first click builds the shared demo institution, which takes a few seconds.
+const FIRST_DEMO_SIGN_IN_MS = 30_000;
 
-  await expect(page).toHaveURL(/\/home$/);
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Welcome");
+const DEMO_ROLES = [
+  { button: "Try as examiner", name: "Kamran Siddiqui" },
+  { button: "Try as candidate", name: "Ayesha Khan" },
+  { button: "Try as admin", name: "Sana Iqbal" },
+];
+
+test("each demo role gets into Ravi Science College with one click", async ({ page }) => {
+  for (const { button, name } of DEMO_ROLES) {
+    await page.goto("/");
+    await page.getByRole("button", { name: button }).click();
+
+    await expect(page).toHaveURL(/\/home$/, { timeout: FIRST_DEMO_SIGN_IN_MS });
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(name);
+    await expect(page.getByRole("main").getByText("Ravi Science College, Lahore")).toBeVisible();
+
+    await page.getByRole("button", { name: "Account menu" }).click();
+    await page.getByRole("menuitem", { name: "Sign out" }).click();
+    await expect(page).toHaveURL(/\/$/);
+  }
 });
 
 test("a signed-out visitor is sent to sign in", async ({ page }) => {

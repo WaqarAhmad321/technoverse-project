@@ -1,7 +1,7 @@
 export const site = {
-  name: "Product name",
-  promise: "One line on what a person gets from this product.",
-  demoAccountName: "Sara Malik",
+  name: "Imtihaan",
+  promise: "Online exams that survive load-shedding, leaked papers and wrong answer keys.",
+  demoAccountName: "Ayesha Khan",
 };
 
 export const APP_HOME = "/home";

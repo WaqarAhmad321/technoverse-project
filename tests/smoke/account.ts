@@ -4,6 +4,9 @@ import { createClient } from "@supabase/supabase-js";
 
 export type Account = { name: string; email: string; password: string };
 
+// Someone who sets exams gets a seeded institution at sign-up: about 1,300 rows.
+const SIGN_UP_WITH_SEED_MS = 20_000;
+
 function requireEnv(name: string): string {
   const value = process.env[name];
   if (!value) throw new Error(`${name} is not set. Fill it in .env.local; .env.example lists the names.`);
@@ -25,7 +28,7 @@ async function signUp(page: Page, account: Account): Promise<void> {
   await page.getByLabel("Email").fill(account.email);
   await page.getByLabel("Password").fill(account.password);
   await page.getByRole("button", { name: "Create account" }).click();
-  await expect(page).toHaveURL(/\/home$/);
+  await expect(page).toHaveURL(/\/home$/, { timeout: SIGN_UP_WITH_SEED_MS });
 }
 
 async function removeAccount(account: Account): Promise<void> {

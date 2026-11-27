@@ -13,7 +13,7 @@ const USERS_PER_PAGE = 1000;
 const USAGE = `Usage:
   scripts/db push               apply the new files in ${MIGRATIONS_DIR}
   scripts/db new <short-name>   start a new file, named so it sorts after the others
-  scripts/db reset-demo         remove the demo account and leftover test accounts`;
+  scripts/db reset-demo         remove the demo accounts, their institution and leftover test accounts`;
 
 function fail(message) {
   console.error(message);
@@ -97,14 +97,23 @@ async function listAllUsers(supabase) {
   }
 }
 
+// Same rule as taggedEmail in src/lib/demo-accounts.ts: this script cannot import the app's TypeScript.
+const DEMO_TAGS = ["examiner", "candidate", "admin", "platform", "bilal"];
+
+function taggedEmail(baseEmail, tag) {
+  const [local, domain] = baseEmail.toLowerCase().split("@");
+  return `${local}${local.includes("+") ? "-" : "+"}${tag}@${domain}`;
+}
+
 async function resetDemo() {
   const supabase = connect();
-  const demoEmail = requireEnv("DEMO_EMAIL").toLowerCase();
+  const baseDemoEmail = requireEnv("DEMO_EMAIL").toLowerCase();
+  const demoEmails = new Set([baseDemoEmail, ...DEMO_TAGS.map((tag) => taggedEmail(baseDemoEmail, tag))]);
   const oldestRunningSmokeTest = Date.now() - SMOKE_ACCOUNT_MAX_AGE_MS;
 
   const users = await listAllUsers(supabase);
   const toRemove = users.filter((user) => {
-    const isDemo = user.email === demoEmail;
+    const isDemo = demoEmails.has(user.email?.toLowerCase() ?? "");
     const isLeftoverSmoke =
       user.email?.startsWith(SMOKE_EMAIL_PREFIX) && Date.parse(user.created_at) < oldestRunningSmokeTest;
     return isDemo || isLeftoverSmoke;
@@ -116,7 +125,7 @@ async function resetDemo() {
   }
 
   console.log(`db: removed ${toRemove.length} account(s) and everything they owned.`);
-  console.log('db: the next "Try the demo" click creates a fresh demo account with fresh sample data.');
+  console.log('db: the next "Try as …" click rebuilds Ravi Science College with fresh sample data.');
 }
 
 const [command, argument] = process.argv.slice(2);

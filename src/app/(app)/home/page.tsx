@@ -1,15 +1,40 @@
-import { requireUser } from "@/lib/auth";
-import { getDisplayName } from "@/lib/profile";
-import { site } from "@/lib/site";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { getAccess } from "@/lib/access";
+import { navFor, type NavAudience } from "@/lib/nav";
+
+const HOME = "/home";
 
 export default async function HomePage() {
-  const user = await requireUser();
-  const userName = await getDisplayName(user);
+  const access = await getAccess();
+  const firstName = access.profile.display_name;
+  const audience: NavAudience[] = [...(access.current?.roles ?? []), ...(access.profile.is_super_admin ? (["super_admin"] as const) : [])];
+  const shortcuts = navFor(audience).filter((item) => item.href !== HOME);
 
   return (
-    <div className="flex flex-col gap-2">
-      <h1 className="text-2xl font-semibold tracking-tight">Welcome, {userName}</h1>
-      <p className="text-base text-muted-foreground">{site.promise}</p>
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-2">
+        <h1 className="text-2xl font-semibold tracking-tight">Welcome, {firstName}</h1>
+        {access.current && <p className="text-base text-muted-foreground">{access.current.institution.name}</p>}
+      </div>
+      {access.suspended && (
+        <p className="text-base">Your institution is suspended. Ask the platform admin to reactivate it.</p>
+      )}
+      {!access.current && !access.suspended && !access.profile.is_super_admin && (
+        <p className="text-base">
+          You are not on an institution&apos;s roster yet. Ask your examiner to add {access.profile.email}, then sign in
+          again.
+        </p>
+      )}
+      {shortcuts.length > 0 && (
+        <div className="flex flex-wrap gap-3">
+          {shortcuts.map((item, index) => (
+            <Button key={item.href} asChild size="lg" variant={index === 0 ? "default" : "outline"}>
+              <Link href={item.href}>{item.label}</Link>
+            </Button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
