@@ -3,7 +3,9 @@ import { EmptyState } from "@/components/states";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { loadAuditRows } from "@/features/people/audit-data";
 import { VerifyChainButton } from "@/features/people/verify-chain-button";
+import { Pagination } from "@/components/pagination";
 import { requireMember } from "@/lib/access";
+import { paginate } from "@/lib/pagination";
 import { formatPkt } from "@/lib/format";
 
 const ACTION_LABELS: Record<string, string> = {
@@ -21,9 +23,10 @@ function describe(action: string, payload: Record<string, unknown>): string {
   return `${label}${detail}`;
 }
 
-export default async function AuditPage() {
+export default async function AuditPage({ searchParams }: { searchParams: Promise<{ page?: string | string[] }> }) {
   const member = await requireMember("institution_admin", "controller", "observer");
-  const rows = await loadAuditRows(member);
+  const [rows, { page: requestedPage }] = await Promise.all([loadAuditRows(member), searchParams]);
+  const shown = paginate(rows, requestedPage);
 
   return (
     <div className="flex flex-col gap-6">
@@ -43,7 +46,7 @@ export default async function AuditPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map(({ event, actorName }) => (
+              {shown.rows.map(({ event, actorName }) => (
                 <TableRow key={event.id}>
                   <TableCell>{formatPkt(event.created_at)}</TableCell>
                   <TableCell>{actorName}</TableCell>
@@ -52,6 +55,7 @@ export default async function AuditPage() {
               ))}
             </TableBody>
           </Table>
+          <Pagination page={shown} basePath="/admin/audit" noun="events" />
         </div>
       )}
     </div>

@@ -5,12 +5,15 @@ import { setInstitutionStatus } from "@/features/people/platform-actions";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/page-header";
 import { loadInstitutions } from "@/features/people/data";
+import { Pagination } from "@/components/pagination";
 import { requireSuperAdmin } from "@/lib/access";
+import { paginate } from "@/lib/pagination";
 import { formatDate } from "@/lib/format";
 
-export default async function PlatformPage() {
+export default async function PlatformPage({ searchParams }: { searchParams: Promise<{ page?: string | string[] }> }) {
   await requireSuperAdmin();
-  const institutions = await loadInstitutions();
+  const [institutions, { page: requestedPage }] = await Promise.all([loadInstitutions(), searchParams]);
+  const shown = paginate(institutions, requestedPage);
 
   return (
     <div className="flex flex-col gap-6">
@@ -18,6 +21,7 @@ export default async function PlatformPage() {
       {institutions.length === 0 ? (
         <EmptyState message="No institutions yet. Add the first one to give its admin access." />
       ) : (
+        <div className="overflow-x-auto rounded-3xl bg-card p-2">
         <Table>
           <TableHeader>
             <TableRow>
@@ -33,7 +37,7 @@ export default async function PlatformPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {institutions.map(({ institution, memberCount, examCount }) => (
+            {shown.rows.map(({ institution, memberCount, examCount }) => (
               <TableRow key={institution.id}>
                 <TableCell className="font-medium">{institution.name}</TableCell>
                 <TableCell>{institution.city}</TableCell>
@@ -52,7 +56,9 @@ export default async function PlatformPage() {
             ))}
           </TableBody>
         </Table>
+        </div>
       )}
+      <Pagination page={shown} basePath="/platform" noun="institutions" />
       <AddInstitutionForm />
     </div>
   );

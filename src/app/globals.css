@@ -138,6 +138,12 @@
     @apply font-sans;
   }
 }
+/* Switching theme cross-fades colours instead of snapping. */
+.theme-switching,
+.theme-switching * {
+  transition: background-color 250ms ease-out, color 250ms ease-out, border-color 250ms ease-out !important;
+}
+
 /* Clickable surfaces lift a little on hover; reduced motion keeps only the colour change. */
 @utility lift {
   transition-property: transform, box-shadow, background-color;

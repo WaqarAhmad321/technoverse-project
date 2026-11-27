@@ -62,7 +62,7 @@ function NavList({ items, isCollapsed, onNavigate }: { items: NavItem[]; isColla
                 isCurrent && "text-primary",
               )}
             />
-            {!isCollapsed && <span>{item.label}</span>}
+            {!isCollapsed && <span className="animate-in fade-in duration-300">{item.label}</span>}
           </Link>
         );
         return (
@@ -86,7 +86,7 @@ function UserBlock({ name, email, roleLabel, isCollapsed }: { name: string; emai
   const [isSigningOut, startSignOut] = useTransition();
 
   return (
-    <div className={cn("flex items-center gap-3 rounded-2xl bg-card/60 p-2", isCollapsed && "flex-col bg-transparent p-0")}>
+    <div className={cn("flex items-center gap-2 rounded-2xl bg-card/60 p-2", isCollapsed && "flex-col bg-transparent p-0")}>
       <span
         aria-hidden
         className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/20 text-sm font-medium text-foreground"
@@ -94,13 +94,14 @@ function UserBlock({ name, email, roleLabel, isCollapsed }: { name: string; emai
         {initialsOf(name)}
       </span>
       {!isCollapsed && (
-        <span className="flex min-w-0 flex-1 flex-col">
+        <span className="flex min-w-0 flex-1 flex-col animate-in fade-in duration-300">
           <span className="truncate text-sm font-medium">{name}</span>
           <span className="truncate text-xs text-muted-foreground" title={email}>
             {roleLabel}
           </span>
         </span>
       )}
+      <ThemeToggle />
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
@@ -125,7 +126,7 @@ function SidebarBody({ props, isCollapsed, onNavigate }: { props: SidebarProps; 
   return (
     <div className="flex h-full flex-col gap-4">
       {props.institutionName && !isCollapsed && (
-        <p className="truncate px-3 text-sm text-muted-foreground" title={props.institutionName}>
+        <p className="truncate px-3 text-sm text-muted-foreground animate-in fade-in duration-300" title={props.institutionName}>
           {props.institutionName}
         </p>
       )}
@@ -133,7 +134,6 @@ function SidebarBody({ props, isCollapsed, onNavigate }: { props: SidebarProps; 
         <NavList items={props.items} isCollapsed={isCollapsed} onNavigate={onNavigate} />
       </nav>
       <div className="flex flex-col gap-2">
-        <ThemeToggle isCollapsed={isCollapsed} />
         <UserBlock name={props.userName} email={props.userEmail} roleLabel={props.roleLabel} isCollapsed={isCollapsed} />
       </div>
     </div>

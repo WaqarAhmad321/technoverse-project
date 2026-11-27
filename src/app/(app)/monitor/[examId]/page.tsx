@@ -8,7 +8,9 @@ import { ApproveCreditButton } from "@/features/delivery/approve-credit-button";
 import { loadAnnouncements } from "@/features/delivery/attempts";
 import { AutoRefresh } from "@/features/delivery/auto-refresh";
 import { loadExamForStaff, loadMonitorRows, loadQuestionPreviews, type MonitorRow } from "@/features/delivery/data";
+import { Pagination } from "@/components/pagination";
 import { can, requireMember } from "@/lib/access";
+import { paginate } from "@/lib/pagination";
 import { formatPkt } from "@/lib/format";
 
 const REFRESH_MS = 5_000;
@@ -54,8 +56,15 @@ function StatusCell({ row, questionCount }: { row: MonitorRow; questionCount: nu
   );
 }
 
-export default async function MonitorPage({ params }: { params: Promise<{ examId: string }> }) {
+export default async function MonitorPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ examId: string }>;
+  searchParams: Promise<{ page?: string | string[] }>;
+}) {
   const { examId } = await params;
+  const { page: requestedPage } = await searchParams;
   const member = await requireMember("examiner", "institution_admin", "controller", "invigilator");
   const exam = await loadExamForStaff(member, examId);
   if (!can(member, "exam.monitor", exam)) notFound();
@@ -67,6 +76,7 @@ export default async function MonitorPage({ params }: { params: Promise<{ examId
   const canSpeak = member.roles.some((role) => role === "examiner" || role === "institution_admin" || role === "controller");
   const order = (row: MonitorRow) => (row.attempt?.status === "in_progress" ? 0 : row.attempt ? 1 : 2);
   const sortedRows = [...rows].sort((a, b) => order(a) - order(b));
+  const shown = paginate(sortedRows, requestedPage);
   const inProgress = rows.filter((row) => row.attempt?.status === "in_progress").length;
   const submitted = rows.filter((row) => row.attempt && row.attempt.status !== "in_progress").length;
 
@@ -74,6 +84,7 @@ export default async function MonitorPage({ params }: { params: Promise<{ examId
     <div className="flex flex-col gap-6">
       <AutoRefresh everyMs={REFRESH_MS} />
       <PageHeader
+        back={{ href: "/monitor", label: "Live monitor" }}
         title={exam.title}
         description={`Live · ${inProgress} sitting now · ${submitted} submitted · ${rows.length} enrolled. Updates every 5 seconds.`}
       />
@@ -104,7 +115,7 @@ export default async function MonitorPage({ params }: { params: Promise<{ examId
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedRows.map((row) => (
+              {shown.rows.map((row) => (
                 <TableRow key={row.candidate.id}>
                   <TableCell className="font-mono">{row.candidate.roll_number}</TableCell>
                   <TableCell>{row.candidate.full_name}</TableCell>
@@ -125,6 +136,7 @@ export default async function MonitorPage({ params }: { params: Promise<{ examId
               ))}
             </TableBody>
           </Table>
+          <Pagination page={shown} basePath={`/monitor/${exam.id}`} noun="candidates" />
         </div>
       )}
     </div>

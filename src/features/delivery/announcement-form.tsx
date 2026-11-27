@@ -6,10 +6,12 @@ import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { isActionError, useActionToast } from "@/components/use-action-toast";
 import { sendAnnouncement } from "./actions";
 
 export function AnnouncementForm({ examId }: { examId: string }) {
   const [state, formAction] = useActionState(sendAnnouncement, null);
+  useActionToast(state);
 
   return (
     <form action={formAction} className="flex flex-col gap-4 rounded-3xl bg-card p-4 md:p-6">
@@ -26,7 +28,7 @@ export function AnnouncementForm({ examId }: { examId: string }) {
         </div>
         <SubmitButton size="lg">Send announcement</SubmitButton>
       </div>
-      {state && <FormMessage tone={state.status === "sent" ? "done" : "error"}>{state.message}</FormMessage>}
+      {isActionError(state) && <FormMessage tone="error">{state.message}</FormMessage>}
     </form>
   );
 }

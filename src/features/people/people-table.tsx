@@ -1,6 +1,7 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { PAGE_SIZE } from "@/lib/pagination";
 import { useActionState, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { FormMessage } from "@/components/form-message";
@@ -71,11 +72,15 @@ function RolesDialog({ person, isSelf, onClose }: { person: PersonRow; isSelf: b
 
 export function PeopleTable({ people, selfId }: { people: PersonRow[]; selfId: string }) {
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
   const [editing, setEditing] = useState<PersonRow | null>(null);
   const needle = query.trim().toLowerCase();
-  const shown = needle
+  const matches = needle
     ? people.filter((person) => person.name.toLowerCase().includes(needle) || person.email.includes(needle))
     : people;
+  const pageCount = Math.max(1, Math.ceil(matches.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const shown = matches.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   return (
     <div className="flex flex-col gap-4">
@@ -86,7 +91,10 @@ export function PeopleTable({ people, selfId }: { people: PersonRow[]; selfId: s
           aria-label="Search people by name or email"
           placeholder="Search by name or email"
           value={query}
-          onChange={(event) => setQuery(event.target.value)}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setPage(1);
+          }}
           className="rounded-full pl-11"
         />
       </div>
@@ -122,6 +130,21 @@ export function PeopleTable({ people, selfId }: { people: PersonRow[]; selfId: s
               ))}
             </TableBody>
           </Table>
+          {pageCount > 1 && (
+            <nav aria-label="People pages" className="flex items-center justify-between gap-3 px-2 pt-3">
+              <p className="text-sm text-muted-foreground">
+                Showing {(currentPage - 1) * PAGE_SIZE + 1}–{(currentPage - 1) * PAGE_SIZE + shown.length} of {matches.length} people
+              </p>
+              <div className="flex gap-1">
+                <Button type="button" variant="ghost" size="icon" className="size-10" aria-label="Previous page" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>
+                  <ChevronLeft aria-hidden className="size-5" />
+                </Button>
+                <Button type="button" variant="ghost" size="icon" className="size-10" aria-label="Next page" disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)}>
+                  <ChevronRight aria-hidden className="size-5" />
+                </Button>
+              </div>
+            </nav>
+          )}
         </div>
       )}
       {editing && <RolesDialog key={editing.id} person={editing} isSelf={editing.id === selfId} onClose={() => setEditing(null)} />}

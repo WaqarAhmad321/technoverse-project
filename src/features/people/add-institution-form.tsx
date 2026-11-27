@@ -6,6 +6,7 @@ import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { isActionError, useActionToast } from "@/components/use-action-toast";
 import { addInstitution } from "./platform-actions";
 
 const KINDS = [
@@ -17,6 +18,7 @@ const KINDS = [
 
 export function AddInstitutionForm() {
   const [state, formAction] = useActionState(addInstitution, null);
+  useActionToast(state);
 
   return (
     <form action={formAction} className="flex flex-col gap-4 rounded-3xl bg-card p-4 md:p-6">
@@ -53,7 +55,7 @@ export function AddInstitutionForm() {
       <SubmitButton size="lg" className="self-start">
         Add institution
       </SubmitButton>
-      {state && <FormMessage tone={state.status === "saved" ? "done" : "error"}>{state.message}</FormMessage>}
+      {isActionError(state) && <FormMessage tone="error">{state.message}</FormMessage>}
     </form>
   );
 }
