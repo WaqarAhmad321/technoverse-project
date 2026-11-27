@@ -125,3 +125,18 @@ test("the publish checklist blocks a wrong total, then the candidate sees the pu
   await accountCandidate.goto("/exams");
   await expect(accountCandidate.getByRole("region", { name: "Open now" })).toContainText("Physics Midterm");
 });
+
+test("opening a closed exam marks every objective answer, and marking again changes nothing", async ({ page, account }) => {
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(account.name);
+  await page.goto("/manage");
+  await page.getByRole("link", { name: /Physics Quiz 1/ }).click();
+  await page.getByRole("link", { name: "Open marking" }).click();
+  await expect(page.getByText(/^30 attempts · \d+ objective answers marked/)).toBeVisible({ timeout: 20_000 });
+  const attempts = page.getByRole("list", { name: "Attempts" });
+  await expect(attempts.getByText("Not marked")).toHaveCount(0);
+  const before = await attempts.innerText();
+  await page.getByRole("button", { name: "Mark objective answers" }).click();
+  await page.reload();
+  await expect(attempts).toBeVisible();
+  expect(await attempts.innerText()).toBe(before);
+});
