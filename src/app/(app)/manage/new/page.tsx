@@ -27,7 +27,7 @@ export default async function NewExamPage() {
   await requireMember("examiner", "institution_admin");
   return (
     <div className="max-w-3xl">
-      <PageHeader title="New exam" description="Set the window and marks, then pick questions from your bank." />
+      <PageHeader back={{ href: "/manage", label: "Exams" }} title="New exam" description="Set the window and marks, then pick questions from your bank." />
       <div className="rounded-3xl bg-card p-4 md:p-6">
         <ExamForm action={createExam} values={defaults()} submitLabel="Create exam" lockedReason={null} canEdit />
       </div>

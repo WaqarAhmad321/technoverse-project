@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
+import { Pagination } from "@/components/pagination";
+import { paginate } from "@/lib/pagination";
 import { Button } from "@/components/ui/button";
 import { requireMember } from "@/lib/access";
 import type { Difficulty, QuestionKind } from "@/lib/exam-types";
@@ -8,7 +10,7 @@ import { listQuestions, listTopics, type BankFilters } from "@/features/authorin
 import { DIFFICULTIES, KINDS } from "@/features/authoring/questions/schema";
 import { plural } from "@/features/authoring/format";
 
-type Search = { topic?: string; difficulty?: string; kind?: string; q?: string; added?: string };
+type Search = { topic?: string; difficulty?: string; kind?: string; q?: string; added?: string; page?: string };
 
 function parseFilters(search: Search): BankFilters {
   return {
@@ -25,6 +27,8 @@ export default async function QuestionBankPage({ searchParams }: { searchParams:
   const filters = parseFilters(search);
   const [rows, topics] = await Promise.all([listQuestions(member, filters), listTopics(member)]);
   const isFiltered = Object.values(filters).some(Boolean);
+  const shown = paginate(rows, search.page);
+  const filterParams = Object.fromEntries(Object.entries(filters).flatMap(([key, value]) => (value ? [[key, String(value)]] : [])));
 
   return (
     <div>
@@ -39,7 +43,8 @@ export default async function QuestionBankPage({ searchParams }: { searchParams:
         </div>
       </PageHeader>
       <BankFiltersForm filters={filters} topics={topics} />
-      <BankList rows={rows} highlightId={search.added} isFiltered={isFiltered} />
+      <BankList rows={shown.rows} highlightId={search.added} isFiltered={isFiltered} />
+      <Pagination page={shown} basePath="/questions" params={filterParams} noun="questions" />
     </div>
   );
 }

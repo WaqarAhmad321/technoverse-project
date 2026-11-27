@@ -22,10 +22,18 @@ type ThemedSelectProps = {
 // Radix items cannot use "" as a value, but "All topics" style options need it.
 const EMPTY = "__empty__";
 
+function textOf(node: React.ReactNode): string {
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(textOf).join("");
+  return "";
+}
+
+// An <option> without a value submits its text, exactly as the browser's own select does.
 function readOptions(children: React.ReactNode): OptionData[] {
   return Children.toArray(children).flatMap((child) => {
     if (!isValidElement<{ value?: string | number; disabled?: boolean; children?: React.ReactNode }>(child)) return [];
-    return [{ value: String(child.props.value ?? ""), label: child.props.children, disabled: Boolean(child.props.disabled) }];
+    const value = child.props.value ?? textOf(child.props.children);
+    return [{ value: String(value), label: child.props.children, disabled: Boolean(child.props.disabled) }];
   });
 }
 

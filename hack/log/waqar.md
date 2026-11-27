@@ -17,3 +17,4 @@
 16:48 shared: app frame is now a collapsible rounded sidebar (src/components/app-sidebar.tsx) with icons from src/components/nav-icons.tsx (add your href there); dark theme by default with a light toggle; StatTile and .lift hover in shared components
 16:45 shared: product standard added to .claude/rules/ui-design.md (back links, Pagination, tooltips, Select, toasts via useActionToast, calm motion, nav icons); umar: please apply it to the authoring screens
 16:58 shared: ThemedSelect (src/components/themed-select.tsx) replaces native <select> as a drop-in; swapped into authoring's four dropdowns. Skeletons in src/components/skeletons.tsx; tables page behind <Suspense key={page}>
+17:10 shared + authoring screens: back links on all authoring detail pages, pagers on question bank and roster, StatusDot on the exam list, ThemedSelect handles options without a value, light accent is teal. umar: tests pick dropdown options by clicking now (no selectOption)

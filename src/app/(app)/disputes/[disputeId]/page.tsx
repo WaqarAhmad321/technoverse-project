@@ -16,7 +16,7 @@ export default async function DisputePage({ params }: { params: Promise<{ disput
   const others = dispute.question.options.filter((option) => !(dispute.question.answer_key ?? []).includes(option.id));
   return (
     <div className="flex max-w-3xl flex-col gap-4">
-      <PageHeader title={`Challenge on Q${dispute.position}`} description={`${dispute.examTitle} · Roll ${dispute.roll}`} />
+      <PageHeader back={{ href: "/disputes", label: "Disputes" }} title={`Challenge on Q${dispute.position}`} description={`${dispute.examTitle} · Roll ${dispute.roll}`} />
       <section className="flex flex-col gap-3 rounded-3xl bg-card p-4 md:p-6">
         <p className="text-base font-medium">{dispute.question.body}</p>
         <ul className="flex flex-col gap-1 text-base">

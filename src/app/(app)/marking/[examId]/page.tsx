@@ -48,7 +48,7 @@ export default async function MarkingPage({ params }: { params: Promise<{ examId
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={`Marking: ${exam.title}`} description={`${plural(attempts.length, "submitted attempt")}.`}>
+      <PageHeader back={{ href: `/manage/${exam.id}`, label: exam.title }} title={`Marking: ${exam.title}`} description={`${plural(attempts.length, "submitted attempt")}.`}>
         <form action={markObjectiveAnswers.bind(null, exam.id)}>
           <SubmitButton size="lg" variant="outline">
             Mark objective answers

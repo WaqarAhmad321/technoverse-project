@@ -12,7 +12,7 @@ export default async function EditQuestionPage({ params }: { params: Promise<{ q
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
-      <PageHeader title="Edit question" description={`Version ${question.version}. ${usedIn}`} />
+      <PageHeader back={{ href: "/questions", label: "Question bank" }} title="Edit question" description={`Version ${question.version}. ${usedIn}`} />
       <div className="rounded-3xl bg-card p-4 md:p-6">
         <QuestionForm question={question} topics={topics} />
       </div>
