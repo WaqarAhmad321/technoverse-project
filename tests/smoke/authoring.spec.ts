@@ -176,3 +176,40 @@ test("the key check flags Q7, blocks publishing, and a key change regrades every
   await page.getByRole("button", { name: "Publish results" }).click();
   await expect(page.getByText(/^Results published/)).toBeVisible({ timeout: 20_000 });
 });
+
+test("a candidate import lists bad rows and saves nothing until the file is clean", async ({ page, account }) => {
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(account.name);
+  await page.goto("/roster/import");
+  const rows = page.getByLabel("Rows (you can paste or fix them here)");
+  const header = "full_name,roll_number,email,cnic,extra_time_pct";
+  await rows.fill(`${header}\nZainab Malik,0301,not-an-email,35202-4567890-2,0\nUsman Ghani,0231,usman@example.pk,35201-7654321-5,0`);
+  await page.getByRole("button", { name: "Check file" }).click();
+  await expect(page.getByText("0 rows ready, 2 rows with problems")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("list", { name: "Import problems" })).toContainText("Row 3: Roll number 0231 is already on the roster.");
+
+  await rows.fill(`${header}\nZainab Malik,0301,zainab@example.pk,35202-4567890-2,0\nUsman Ghani,0302,usman@example.pk,35201-7654321-5,25`);
+  await page.getByRole("button", { name: "Check file" }).click();
+  await page.getByRole("button", { name: "Import 2 candidates" }).click();
+  await expect(page.getByText("Imported 2 candidates.")).toBeVisible({ timeout: 15_000 });
+});
+
+test("a question import reports a key outside the options, then imports an Urdu question", async ({ page, account }) => {
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(account.name);
+  await page.goto("/questions/import");
+  const urdu = "توانائی کی بچت کے دو طریقے لکھیں۔";
+  const file = (answer: string) =>
+    JSON.stringify([
+      { topic: "Waves", difficulty: "easy", kind: "single", marks: 2, body: "What is the unit of frequency?", options: ["Hertz", "Metre"], answer: [answer] },
+      { topic: "Energy", difficulty: "medium", kind: "written", marks: 5, body: urdu, rubric: "2.5 marks for each sensible way." },
+    ]);
+  const rows = page.getByLabel("Questions (you can paste or fix them here)");
+  await rows.fill(file("e"));
+  await page.getByRole("button", { name: "Check file" }).click();
+  await expect(page.getByRole("list", { name: "Import problems" })).toContainText("Question 1: A single-answer question needs exactly one correct option.", { timeout: 15_000 });
+  await rows.fill(file("a"));
+  await page.getByRole("button", { name: "Check file" }).click();
+  await page.getByRole("button", { name: "Import 2 questions" }).click();
+  await expect(page.getByText("Imported 2 questions.")).toBeVisible({ timeout: 15_000 });
+  await page.goto("/questions");
+  await expect(page.getByText(urdu)).toBeVisible();
+});

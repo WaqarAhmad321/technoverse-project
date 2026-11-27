@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
+import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/states";
 import { requireMember } from "@/lib/access";
 import { CandidateForm } from "@/features/authoring/roster/candidate-form";
@@ -11,7 +13,11 @@ export default async function RosterPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title="Roster" description={`${plural(roster.length, "candidate")} at ${member.institution.name}.`} />
+      <PageHeader title="Roster" description={`${plural(roster.length, "candidate")} at ${member.institution.name}.`}>
+        <Button asChild variant="outline" size="lg">
+          <Link href="/roster/import">Import candidates</Link>
+        </Button>
+      </PageHeader>
       <details className="group rounded-3xl bg-card p-4 md:p-6">
         <summary className="flex min-h-11 cursor-pointer list-none items-center text-xl font-medium">
           Add candidate
