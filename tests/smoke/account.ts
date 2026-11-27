@@ -43,6 +43,18 @@ async function signUp(page: Page, account: Account, kind: AccountKind = "examine
   await page.getByLabel(KIND_LABELS[kind]).check();
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page).toHaveURL(/\/home$/, { timeout: SIGN_UP_WITH_SEED_MS });
+  if (kind === "examiner") await approveInstitutionOf(account);
+}
+
+// A new institution starts pending; tests act as the platform admin would and approve it.
+async function approveInstitutionOf(account: Account): Promise<void> {
+  const url = requireEnv("NEXT_PUBLIC_SUPABASE_URL");
+  const noSession = { auth: { persistSession: false, autoRefreshToken: false } };
+  const visitor = createClient(url, requireEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"), noSession);
+  const { data } = await visitor.auth.signInWithPassword({ email: account.email, password: account.password });
+  if (!data.user) return;
+  const admin = createClient(url, requireEnv("SUPABASE_SECRET_KEY"), noSession);
+  await admin.from("institutions").update({ status: "active" }).eq("user_id", data.user.id);
 }
 
 async function removeAccount(account: Account): Promise<void> {

@@ -16,6 +16,7 @@ import { KeyDoctorCard } from "@/features/authoring/marking/key-doctor-card";
 import { loadKeyDoctor, type AnalyticsRow, type KeyDoctorView } from "@/features/authoring/marking/key-doctor-data";
 import { PublishForm } from "@/features/authoring/exams/publish-form";
 import { publishResults } from "@/features/authoring/marking/results-actions";
+import { ApprovalPanel } from "@/features/governance/approval-panel";
 import { computeScores, summarize, type ExamSummary, type ScoreRow } from "@/features/authoring/marking/results";
 import { saveWrittenMark } from "@/features/authoring/marking/written-actions";
 import { loadWrittenQueue, type WrittenQueue } from "@/features/authoring/marking/written-data";
@@ -72,6 +73,7 @@ export default async function MarkingPage({ params }: { params: Promise<{ examId
               {plural(unmarked, "written answer")} still unmarked. They count as 0 until marked; marking one later issues a new result version.
             </p>
           )}
+          <ApprovalPanel examId={exam.id} kind="results" />
           <PublishForm
             action={publishResults.bind(null, exam.id)}
             label="Publish results"

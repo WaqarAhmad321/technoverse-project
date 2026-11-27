@@ -25,6 +25,7 @@ const ICON_BY_HREF: Record<string, LucideIcon> = {
   "/admin/people": UsersRound,
   "/admin/audit": ShieldCheck,
   "/platform": Building2,
+  "/approvals": ShieldCheck,
 };
 
 // A screen without its own icon still gets a sensible one, so a new nav line never renders bare.

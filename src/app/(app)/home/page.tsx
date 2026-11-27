@@ -1,4 +1,4 @@
-import { Activity, Award, CalendarClock, ClipboardList, FilePenLine, Library, NotebookPen, ShieldCheck, UsersRound } from "lucide-react";
+import { Activity, Award, Hourglass, CalendarClock, ClipboardList, FilePenLine, Library, NotebookPen, ShieldCheck, UsersRound } from "lucide-react";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { StatTile } from "@/components/stat-tile";
@@ -23,6 +23,12 @@ export default async function HomePage() {
     <div className="flex flex-col gap-8">
       <PageHeader title={`Welcome, ${firstName}`} description={current?.institution.name ?? (access.profile.is_super_admin ? "Platform admin" : undefined)} />
 
+      {current?.institution.status === "pending" && (
+        <p className="flex items-start gap-3 rounded-3xl bg-primary/10 p-5 text-base">
+          <Hourglass aria-hidden className="mt-0.5 size-5 shrink-0 text-primary" />
+          {current.institution.name} is waiting for platform approval. You can set up questions, rosters and exams now; publishing opens once it is approved.
+        </p>
+      )}
       {access.suspended && <p className="rounded-3xl bg-card p-6 text-base">Your institution is suspended. Ask the platform admin to reactivate it.</p>}
       {!current && !access.suspended && !access.profile.is_super_admin && (
         <p className="rounded-3xl bg-card p-6 text-base">
