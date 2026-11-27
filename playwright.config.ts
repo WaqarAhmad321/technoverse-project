@@ -22,7 +22,9 @@ const baseURL = `http://127.0.0.1:${port}`;
 
 export default defineConfig({
   testDir: "tests/smoke",
-  timeout: 45_000,
+  // Every laptop talks to one remote database, so a click that saves takes seconds here; the waits allow for it.
+  timeout: 90_000,
+  expect: { timeout: 12_000 },
   retries: 1,
   reporter: "line",
   use: {
