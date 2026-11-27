@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+# Prints the hackathon clock: time left, the current phase and its one rule.
+# With --hook <EventName> it prints Claude Code hook JSON, so every prompt carries the time.
+# It never fails: a broken clock must not block a prompt.
+set -uo pipefail
+
+hook_event=""
+if [ "${1:-}" = "--hook" ]; then
+  hook_event=${2:-UserPromptSubmit}
+fi
+
+emit() {
+  if [ -n "$hook_event" ]; then
+    printf '{"hookSpecificOutput":{"hookEventName":"%s","additionalContext":"%s"}}\n' "$hook_event" "$1"
+  else
+    printf '%s\n' "$1"
+  fi
+  exit 0
+}
+
+cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null || exit 0
+root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+conf="$root/hack/clock.env"
+[ -f "$conf" ] || exit 0
+
+read_setting() { sed -n "s/^$1=//p" "$conf" | head -n1 | tr -d "\"'"; }
+start_text=$(read_setting HACK_START)
+end_text=$(read_setting HACK_END)
+[ -n "$start_text" ] && [ -n "$end_text" ] || exit 0
+
+start=$(date -d "$start_text" +%s 2>/dev/null) || exit 0
+end=$(date -d "$end_text" +%s 2>/dev/null) || exit 0
+[ "$end" -gt "$start" ] || exit 0
+if [ -n "${HACK_NOW:-}" ]; then
+  now=$(date -d "$HACK_NOW" +%s 2>/dev/null) || exit 0
+else
+  now=$(date +%s)
+fi
+
+me=$(git config --get hack.me 2>/dev/null || true)
+if [ -n "$me" ]; then
+  who="You are $me."
+else
+  who="This checkout has no name yet: run /start with your name."
+fi
+
+span() {
+  local seconds=$1 days hours minutes
+  days=$((seconds / 86400))
+  hours=$(((seconds % 86400) / 3600))
+  minutes=$(((seconds % 3600) / 60))
+  if [ "$days" -gt 0 ]; then
+    printf '%dd %dh' "$days" "$hours"
+  elif [ "$hours" -gt 0 ]; then
+    printf '%dh %02dm' "$hours" "$minutes"
+  else
+    printf '%dm' "$minutes"
+  fi
+}
+hhmm() { date -d "@$1" +%H:%M; }
+
+if [ "$now" -lt "$start" ]; then
+  emit "Hack clock: the build starts at $(hhmm "$start"), in $(span $((start - now))). $who"
+fi
+if [ "$now" -ge "$end" ]; then
+  emit "Hack clock: build time ended at $(hhmm "$end"). Only demo and pitch work now. $who"
+fi
+
+# Phase boundaries as thousandths of the whole build time, so a short mock run scales.
+total=$((end - start))
+mark() { echo $((start + total * $1 / 1000)); }
+idea_end=$(mark 75)
+shape_end=$(mark 150)
+main_end=$(mark 550)
+more_end=$(mark 800)
+freeze_end=$(mark 950)
+
+if [ "$now" -lt "$idea_end" ]; then
+  phase="Pick the idea"
+  until=$idea_end
+  rule="Lock one idea before this phase ends."
+elif [ "$now" -lt "$shape_end" ]; then
+  phase="Requirements, slices and skeleton"
+  until=$shape_end
+  rule="The requirements, the slices, the task lists and the shared skeleton land now."
+elif [ "$now" -lt "$main_end" ]; then
+  phase="Build the main flow"
+  until=$main_end
+  rule="Must-have tasks only. A task that runs far past its size gets cut down or parked."
+elif [ "$now" -lt "$more_end" ]; then
+  phase="Should-haves, then extras"
+  until=$more_end
+  rule="Finish the must-haves first, then should-haves, then extras. Everything lands working."
+elif [ "$now" -lt "$freeze_end" ]; then
+  phase="Feature freeze"
+  until=$freeze_end
+  rule="No new features. Fix, hide or polish. Load the demo data and rehearse the demo."
+else
+  phase="Final deploy and submit"
+  until=$end
+  rule="Only the final deploy, the backup video and the submission. Touch nothing risky."
+fi
+
+emit "Hack clock: $(hhmm "$now"), $(span $((end - now))) left. Phase: $phase, until $(hhmm "$until"). $rule $who"

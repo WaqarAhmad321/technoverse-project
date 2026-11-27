@@ -1,0 +1,94 @@
+{
+  "enabledPlugins": {
+    "kit@claude-kit": false
+  },
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
+  "permissions": {
+    "allow": [
+      "Bash(scripts/task *)",
+      "Bash(scripts/land)",
+      "Bash(scripts/check)",
+      "Bash(scripts/clock)",
+      "Bash(scripts/clock *)",
+      "Bash(scripts/setup *)",
+      "Bash(./scripts/task *)",
+      "Bash(./scripts/land)",
+      "Bash(./scripts/check)",
+      "Bash(./scripts/clock)",
+      "Bash(./scripts/setup *)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git show*)",
+      "Bash(git branch*)",
+      "Bash(git fetch*)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git switch *)",
+      "Bash(git merge *)",
+      "Bash(git worktree list*)",
+      "Bash(pnpm *)",
+      "Bash(scripts/db *)",
+      "Bash(./scripts/db *)"
+    ],
+    "deny": [
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(!.env.example)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git push * --force*)",
+      "Bash(git push * -f*)",
+      "Bash(git commit * --no-verify*)",
+      "Bash(git push * --no-verify*)",
+      "Bash(git add -f *)",
+      "Bash(git add --force *)"
+    ]
+  },
+  "sandbox": {
+    "excludedCommands": [
+      "scripts/task *",
+      "scripts/land",
+      "scripts/check",
+      "./scripts/task *",
+      "./scripts/land",
+      "./scripts/check",
+      "scripts/db *",
+      "./scripts/db *",
+      "pnpm dev",
+      "pnpm dev *",
+      "pnpm build",
+      "pnpm start",
+      "pnpm start *",
+      "pnpm smoke",
+      "pnpm smoke *"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/scripts/clock --hook SessionStart",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/scripts/clock --hook UserPromptSubmit",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

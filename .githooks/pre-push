@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Main must stay working: a push that changes main runs the check first.
+# scripts/land has already run it on the same commit, so it sets HACK_CHECKED to skip the repeat.
+# The push that creates main goes through unchecked: there is no working main to protect yet,
+# and a new project goes on GitHub before its keys are in place.
+set -euo pipefail
+
+[ "${HACK_CHECKED:-}" != "1" ] || exit 0
+
+changes_main=no
+while read -r _local_ref _local_sha remote_ref remote_sha; do
+  if [ "$remote_ref" = refs/heads/main ] && [[ ! "$remote_sha" =~ ^0+$ ]]; then
+    changes_main=yes
+  fi
+done
+[ "$changes_main" = yes ] || exit 0
+
+echo "Pushing to main: running the check first. Use scripts/land to do this in one step."
+exec "$(git rev-parse --show-toplevel)/scripts/check" </dev/null

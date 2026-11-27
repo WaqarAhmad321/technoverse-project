@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# Lands the current branch on main: bring main in, run the check on the combined result,
+# push. If a teammate landed in the meantime, it does all of that again on the new main.
+# Exit codes: 0 landed, 1 the check or the push failed, 2 a merge conflict needs resolving.
+set -euo pipefail
+
+here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+. "$here/_lib.sh"
+cd "$(hack_root)"
+
+MAX_TRIES=6
+
+branch=$(git branch --show-current)
+[ -n "$branch" ] || hack_die "Not on a branch. Switch to your task branch first."
+if [ -f "$(git rev-parse --git-dir)/MERGE_HEAD" ]; then
+  hack_die "A merge is still open. Resolve it, then: git add -u && git commit --no-edit && scripts/land"
+fi
+[ -z "$(hack_changes)" ] || hack_die "There are uncommitted changes. Commit them, then run scripts/land again."
+
+if ! hack_has_origin; then
+  scripts/check
+  echo "The check passed. There is no remote yet, so nothing was pushed."
+  exit 0
+fi
+
+for try in $(seq 1 "$MAX_TRIES"); do
+  git fetch --quiet origin ||
+    hack_die "Could not reach the remote. Your work is committed and safe here. Run scripts/land again when the network is back."
+  main_before=$(git rev-parse --verify --quiet origin/main || true)
+
+  if [ -n "$main_before" ] && ! git merge --quiet --no-edit -m "chore: merge main into $branch" origin/main; then
+    echo "Main and this branch changed the same lines in:"
+    git diff --name-only --diff-filter=U | sed 's/^/  /'
+    echo "Resolve them so both changes keep working, then:"
+    echo "  git add -u && git commit --no-edit && scripts/land"
+    exit 2
+  fi
+
+  if ! scripts/check; then
+    echo "The check failed, so nothing was pushed. Fix it, commit, then run scripts/land again."
+    exit 1
+  fi
+
+  if HACK_CHECKED=1 git push --quiet origin HEAD:refs/heads/main; then
+    echo "Landed $(git rev-parse --short HEAD) on main."
+    exit 0
+  fi
+
+  git fetch --quiet origin
+  if [ "$(git rev-parse --verify --quiet origin/main || true)" = "$main_before" ]; then
+    hack_die "The push failed and main did not move. Check the network and your access to the repo."
+  fi
+  echo "A teammate landed first. Bringing their work in and checking again (try $try of $MAX_TRIES)."
+done
+
+hack_die "Could not land after $MAX_TRIES tries because main kept moving. Run scripts/land again."

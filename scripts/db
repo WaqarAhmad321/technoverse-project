@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Database changes: apply new SQL files, start a new one, reset the demo account.
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+
+if [ ! -d node_modules ]; then
+  pnpm install --frozen-lockfile --prefer-offline --loglevel=error
+fi
+
+exec node db/cli.mjs "$@"

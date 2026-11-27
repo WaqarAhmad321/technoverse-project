@@ -1,0 +1,4 @@
+# Lists that several people add to at once. Git keeps both sides' new lines instead of raising a conflict.
+src/lib/nav.ts merge=union
+src/lib/sample-data.ts merge=union
+.env.example merge=union

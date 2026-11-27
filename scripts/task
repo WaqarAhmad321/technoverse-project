@@ -1,0 +1,243 @@
+#!/usr/bin/env bash
+# One person's task list. Tasks are files in hack/tasks/<name>/, taken in file-name order.
+# A claim is a folder inside the clone's git directory, so every worktree of one laptop
+# sees it and two Claude sessions never take the same task.
+set -euo pipefail
+
+here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+. "$here/_lib.sh"
+cd "$(hack_root)"
+
+TASKS_DIR=hack/tasks
+tree=$(pwd)
+claims=$(git rev-parse --path-format=absolute --git-common-dir)/hack-claims
+
+usage() {
+  cat <<'EOF'
+Usage: scripts/task <command>
+  start            take my next task: sync, claim it, open its branch
+  done             mark my current task done (then commit and run scripts/land)
+  park <reason>    set my current task aside and free this checkout for the next one
+  unpark <task>    bring a parked task back into this checkout, e.g. 030-upload
+  list [name]      show the task lists: everyone, or one person
+EOF
+}
+
+base_ref() {
+  if git rev-parse --verify --quiet origin/main >/dev/null; then
+    echo origin/main
+  elif git rev-parse --verify --quiet main >/dev/null; then
+    echo main
+  else
+    echo HEAD
+  fi
+}
+
+field_at() {
+  local ref=$1 file=$2 name=$3
+  git show "$ref:$file" 2>/dev/null | sed -n "s/^$name:[[:space:]]*\([a-z]*\).*/\1/p" | head -n1 || true
+}
+
+status_here() {
+  [ -f "$1" ] || return 0
+  sed -n 's/^status:[[:space:]]*\([a-z]*\).*/\1/p' "$1" | head -n1
+}
+
+require_clean() {
+  [ -z "$(hack_changes)" ] || hack_die "There are uncommitted changes here. Commit them first."
+}
+
+current_claim() {
+  local me=$1 claim
+  for claim in "$claims/${me}__"*; do
+    [ -d "$claim" ] || continue
+    [ ! -e "$claim/parked" ] || continue
+    [ "$(cat "$claim/tree" 2>/dev/null || true)" = "$tree" ] || continue
+    printf '%s\n' "${claim##*__}"
+    return 0
+  done
+}
+
+copy_env_into_worktree() {
+  local main_tree env_file
+  main_tree=$(git worktree list --porcelain | sed -n '1s/^worktree //p')
+  [ "$main_tree" != "$tree" ] || return 0
+  for env_file in "$main_tree/.env" "$main_tree/.env.local"; do
+    [ -f "$env_file" ] || continue
+    [ ! -e "$tree/${env_file##*/}" ] || continue
+    cp "$env_file" "$tree/" 2>/dev/null ||
+      echo "Copy ${env_file##*/} from $main_tree into this worktree by hand." >&2
+  done
+  return 0
+}
+
+announce() {
+  echo "Task:   $1"
+  echo "Branch: $2"
+  echo "Tier:   $(sed -n 's/^tier:[[:space:]]*\([a-z]*\).*/\1/p' "$1" | head -n1)"
+  echo "Review: $(sed -n 's/^review:[[:space:]]*\([a-z]*\).*/\1/p' "$1" | head -n1)"
+}
+
+release_and_die() {
+  rm -rf "$1"
+  hack_die "Could not open branch $2, so the task was not taken."
+}
+
+drop_finished_and_orphaned_claims() {
+  local me=$1 ref=$2 claim id claim_tree
+  for claim in "$claims/${me}__"*; do
+    [ -d "$claim" ] || continue
+    id=${claim##*__}
+    if ! git cat-file -e "$ref:$TASKS_DIR/$me/$id.md" 2>/dev/null; then
+      rm -rf "$claim"
+      continue
+    fi
+    if [ "$(field_at "$ref" "$TASKS_DIR/$me/$id.md" status)" = done ]; then
+      rm -rf "$claim"
+      continue
+    fi
+    claim_tree=$(cat "$claim/tree" 2>/dev/null || true)
+    if [ -n "$claim_tree" ] && [ ! -d "$claim_tree" ]; then
+      rm -rf "$claim"
+    fi
+  done
+}
+
+cmd_start() {
+  local me ref current file id claim branch
+  me=$(hack_me)
+  mkdir -p "$claims"
+  if hack_has_origin; then
+    git fetch --quiet origin || echo "Could not reach the remote. Working from what is here." >&2
+  fi
+  ref=$(base_ref)
+  drop_finished_and_orphaned_claims "$me" "$ref"
+
+  current=$(current_claim "$me")
+  if [ -n "$current" ]; then
+    file="$TASKS_DIR/$me/$current.md"
+    if [ "$(status_here "$file")" = done ]; then
+      hack_die "Task $current is marked done here but has not landed. Commit, then run scripts/land."
+    fi
+    branch=$(cat "$claims/${me}__$current/branch")
+    if [ "$(git branch --show-current)" != "$branch" ]; then
+      require_clean
+      git switch --quiet "$branch" ||
+        hack_die "Branch $branch is open in another worktree. Carry on with the task there."
+    fi
+    echo "Carrying on with the task this checkout already holds."
+    announce "$file" "$branch"
+    return 0
+  fi
+
+  require_clean
+  while IFS= read -r file; do
+    case "$file" in *.md) ;; *) continue ;; esac
+    [ "$(field_at "$ref" "$file" status)" = todo ] || continue
+    id=$(basename "$file" .md)
+    claim="$claims/${me}__$id"
+    mkdir "$claim" 2>/dev/null || continue
+    branch="task/$me-$id"
+    printf '%s\n' "$tree" >"$claim/tree"
+    printf '%s\n' "$branch" >"$claim/branch"
+    if git rev-parse --verify --quiet "refs/heads/$branch" >/dev/null; then
+      git switch --quiet "$branch" || release_and_die "$claim" "$branch"
+    else
+      git switch --quiet --no-track -c "$branch" "$ref" || release_and_die "$claim" "$branch"
+    fi
+    copy_env_into_worktree
+    announce "$file" "$branch"
+    return 0
+  done < <(git ls-tree -r --name-only "$ref" -- "$TASKS_DIR/$me/" | sort)
+
+  echo "No open tasks left for $me."
+  exit 3
+}
+
+cmd_done() {
+  local me current file
+  me=$(hack_me)
+  current=$(current_claim "$me")
+  [ -n "$current" ] || hack_die "This checkout holds no task. Run scripts/task start."
+  file="$TASKS_DIR/$me/$current.md"
+  [ -f "$file" ] || hack_die "Cannot find $file on this branch."
+  sed -i '0,/^status:.*/s//status: done/' "$file"
+  echo "Marked $current done. Commit it with the work, then run scripts/land."
+}
+
+cmd_park() {
+  local me current reason=$*
+  me=$(hack_me)
+  [ -n "$reason" ] || hack_die "Say why in a few words: scripts/task park <reason>"
+  current=$(current_claim "$me")
+  [ -n "$current" ] || hack_die "This checkout holds no task to park."
+  if [ -n "$(hack_changes)" ]; then
+    hack_stage_everything
+    git commit --quiet -m "wip: park $current"
+  fi
+  printf '%s\n' "$reason" >"$claims/${me}__$current/parked"
+  echo "Parked $current. The half-done work is safe on branch $(git branch --show-current)."
+  echo "It stays off main. Run scripts/task start for the next task."
+}
+
+cmd_unpark() {
+  local me id=${1:-} claim
+  me=$(hack_me)
+  claim="$claims/${me}__$id"
+  [ -n "$id" ] && [ -e "$claim/parked" ] || hack_die "No parked task called \"$id\". See scripts/task list $me."
+  [ -z "$(current_claim "$me")" ] || hack_die "This checkout already holds a task. Finish or park it first."
+  rm -f "$claim/parked"
+  printf '%s\n' "$tree" >"$claim/tree"
+  echo "Brought $id back. Run scripts/task start to carry on with it."
+}
+
+cmd_list() {
+  local only=${1:-} ref owner file id status tier mark note done_count total lines shown=0
+  ref=$(base_ref)
+  while IFS= read -r owner; do
+    [ -n "$owner" ] || continue
+    [ -z "$only" ] || [ "$only" = "$owner" ] || continue
+    done_count=0
+    total=0
+    lines=""
+    while IFS= read -r file; do
+      case "$file" in *.md) ;; *) continue ;; esac
+      id=$(basename "$file" .md)
+      status=$(field_at "$ref" "$file" status)
+      tier=$(field_at "$ref" "$file" tier)
+      total=$((total + 1))
+      mark="[ ]"
+      note=""
+      if [ "$status" = done ]; then
+        mark="[x]"
+        done_count=$((done_count + 1))
+      elif [ -e "$claims/${owner}__$id/parked" ]; then
+        mark="[p]"
+        note="  parked: $(cat "$claims/${owner}__$id/parked")"
+      elif [ -d "$claims/${owner}__$id" ]; then
+        mark="[>]"
+        note="  in progress on this laptop"
+      fi
+      lines="$lines  $mark $id ($tier)$note"$'\n'
+    done < <(git ls-tree -r --name-only "$ref" -- "$TASKS_DIR/$owner/" | sort)
+    echo "$owner: $done_count of $total done"
+    printf '%s' "$lines"
+    shown=$((shown + 1))
+  done < <(git ls-tree -d --name-only "$ref" -- "$TASKS_DIR/" 2>/dev/null | sed "s|^$TASKS_DIR/||")
+  [ "$shown" -gt 0 ] || echo "No task lists on main yet. /shape creates them."
+  return 0
+}
+
+command=${1:-}
+[ $# -gt 0 ] && shift
+case "$command" in
+  start) cmd_start ;;
+  done) cmd_done ;;
+  park) cmd_park "$@" ;;
+  unpark) cmd_unpark "$@" ;;
+  list) cmd_list "$@" ;;
+  *)
+    usage
+    exit 1
+    ;;
+esac

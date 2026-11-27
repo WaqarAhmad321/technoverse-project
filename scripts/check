@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# The one check that guards main. scripts/land runs it before every push to main.
+# Keep the whole run under about 90 seconds: it runs dozens of times in a day.
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+
+# The skeleton step fills these in for the chosen stack.
+# BUILD_COMMAND: lint, types and build.  For example: "pnpm lint && pnpm typecheck && pnpm build"
+# SMOKE_COMMAND: the demo story in a real browser.  For example: "pnpm smoke"
+BUILD_COMMAND="pnpm install --frozen-lockfile --prefer-offline --loglevel=error && scripts/db push && pnpm lint && pnpm build"
+SMOKE_COMMAND="pnpm smoke"
+
+if [ -z "$BUILD_COMMAND" ] && [ -z "$SMOKE_COMMAND" ]; then
+  echo "check: NOT CHECKING ANYTHING YET. Set BUILD_COMMAND and SMOKE_COMMAND in scripts/check."
+  exit 0
+fi
+
+if [ -n "$BUILD_COMMAND" ]; then
+  echo "check: build"
+  bash -c "$BUILD_COMMAND"
+fi
+
+if [ -n "$SMOKE_COMMAND" ]; then
+  echo "check: smoke test of the demo story"
+  bash -c "$SMOKE_COMMAND"
+else
+  echo "check: no smoke test yet. Set SMOKE_COMMAND in scripts/check."
+fi
+
+echo "check: passed"

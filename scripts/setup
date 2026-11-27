@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# One-time setup of a clone: who you are, the git hooks, and the env file.
+set -euo pipefail
+
+name=$(printf '%s' "${1:-}" | tr '[:upper:]' '[:lower:]')
+if ! printf '%s' "$name" | grep -qE '^[a-z][a-z0-9-]*$'; then
+  echo "Usage: scripts/setup <your-name>   for example: scripts/setup umar" >&2
+  exit 1
+fi
+
+cd "$(git rev-parse --show-toplevel)"
+
+git config hack.me "$name"
+git config core.hooksPath .githooks
+
+if [ -z "$(git config --get user.name || true)" ] || [ -z "$(git config --get user.email || true)" ]; then
+  echo "Git does not know your name or email yet. Set them:"
+  echo "  git config --global user.name \"Your Name\""
+  echo "  git config --global user.email you@example.com"
+fi
+
+if [ -f .env.example ] && [ ! -f .env ] && [ ! -f .env.local ]; then
+  echo "No env file here yet. Copy .env.example and fill in the shared keys."
+fi
+
+echo "Ready, $name. The secret scan runs on every commit and the check runs before main is pushed."
+if [ -d hack/tasks ] && [ ! -d "hack/tasks/$name" ]; then
+  others=$(find hack/tasks -mindepth 1 -maxdepth 1 -type d -printf '%f ' 2>/dev/null || true)
+  echo "There is no task list for \"$name\" yet. Lists so far: ${others:-none}"
+fi
