@@ -23,5 +23,20 @@ export async function getDisplayName(user: SessionUser): Promise<string> {
 }
 
 export async function saveDisplayName(userId: string, displayName: string): Promise<void> {
-  unwrap(await db().from("profiles").upsert({ id: userId, display_name: displayName }));
+  unwrap(await db().from("profiles").update({ display_name: displayName }).eq("id", userId));
+}
+
+type NewProfile = { userId: string; displayName: string; email: string; isSuperAdmin?: boolean };
+
+export async function saveProfile(profile: NewProfile): Promise<void> {
+  unwrap(
+    await db()
+      .from("profiles")
+      .upsert({
+        id: profile.userId,
+        display_name: profile.displayName,
+        email: profile.email.toLowerCase(),
+        is_super_admin: profile.isSuperAdmin ?? false,
+      }),
+  );
 }

@@ -1,5 +1,5 @@
 import "server-only";
-import { saveDisplayName } from "@/lib/profile";
+import { saveProfile } from "@/lib/profile";
 import { db } from "@/lib/db";
 import { seedSampleData } from "@/lib/sample-data";
 import { createSessionClient } from "@/lib/supabase/session";
@@ -22,7 +22,7 @@ export async function createAccount(account: NewAccount): Promise<CreateAccountR
     return "failed";
   }
 
-  await saveDisplayName(data.user.id, account.name);
+  await saveProfile({ userId: data.user.id, displayName: account.name, email: account.email });
   await seedSampleData(data.user.id);
   return "created";
 }
