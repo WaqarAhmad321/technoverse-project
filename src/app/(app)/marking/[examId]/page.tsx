@@ -9,7 +9,7 @@ import { autoGradeObjective } from "@/features/authoring/marking/auto-grade";
 import { listFinishedAttempts } from "@/features/authoring/marking/data";
 import { fixKey } from "@/features/authoring/marking/key-doctor-actions";
 import { KeyDoctorCard } from "@/features/authoring/marking/key-doctor-card";
-import { loadKeyDoctor, type KeyDoctorView } from "@/features/authoring/marking/key-doctor-data";
+import { loadKeyDoctor, type AnalyticsRow, type KeyDoctorView } from "@/features/authoring/marking/key-doctor-data";
 import { PublishForm } from "@/features/authoring/exams/publish-form";
 import { publishResults } from "@/features/authoring/marking/results-actions";
 import { computeScores, summarize, type ExamSummary, type ScoreRow } from "@/features/authoring/marking/results";
@@ -17,6 +17,7 @@ import { saveWrittenMark } from "@/features/authoring/marking/written-actions";
 import { loadWrittenQueue, type WrittenQueue } from "@/features/authoring/marking/written-data";
 import { WrittenForm } from "@/features/authoring/marking/written-form";
 import { formatPakistanTime, plural } from "@/features/authoring/format";
+import { firstLine } from "@/features/authoring/questions/schema";
 
 export default async function MarkingPage({ params }: { params: Promise<{ examId: string }> }) {
   const member = await requireMember("examiner", "institution_admin");
@@ -75,6 +76,7 @@ export default async function MarkingPage({ params }: { params: Promise<{ examId
       ) : (
         <>
           {summary && <SummarySection summary={summary} maxTotal={exam.total_marks} />}
+          <AnalyticsSection rows={doctor.analytics} />
           <ResultsTable scores={scores} />
         </>
       )}
@@ -187,5 +189,44 @@ function ResultsTable({ scores }: { scores: ScoreRow[] }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+function pct(share: number): string {
+  return `${Math.round(share * PERCENT)}%`;
+}
+
+function AnalyticsSection({ rows }: { rows: AnalyticsRow[] }) {
+  if (rows.length === 0) return null;
+  return (
+    <section aria-labelledby="analytics-heading" className="flex flex-col gap-4 rounded-3xl bg-card p-4 md:p-6">
+      <h2 id="analytics-heading" className="text-xl font-medium">
+        How each question behaved
+      </h2>
+      <ul aria-label="Question analytics" className="flex flex-col">
+        {rows.map((row) => (
+          <li key={row.question_id} className="flex flex-col gap-2 border-b border-border py-3 last:border-0">
+            <p className="text-base">
+              <span className="font-medium">Q{row.position}</span> {firstLine(row.body)}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {pct(row.correct)} correct · top minus bottom {row.discrimination.toFixed(2)} · {pct(row.skipped)} skipped
+              {row.behaved !== row.label && ` · Labelled ${row.label}, behaved ${row.behaved}`}
+            </p>
+            <div className="flex flex-col gap-1" aria-label={`Q${row.position} choices among top scorers`}>
+              {row.topShares.map(([option, share]) => (
+                <div key={option} className="flex items-center gap-2 text-sm">
+                  <span className="w-4">{option.toUpperCase()}</span>
+                  <span className="h-2 flex-1 rounded-full bg-muted">
+                    <span className="block h-2 rounded-full bg-primary/70" style={{ width: pct(share) }} />
+                  </span>
+                  <span className="w-10 text-right tabular-nums">{pct(share)}</span>
+                </div>
+              ))}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

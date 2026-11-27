@@ -132,6 +132,7 @@ test("opening a closed exam marks every objective answer, and marking again chan
   await page.getByRole("link", { name: /Physics Quiz 1/ }).click();
   await page.getByRole("link", { name: "Open marking" }).click();
   await expect(page.getByText(/^30 attempts · \d+ objective answers marked/)).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole("list", { name: "Question analytics" })).toContainText("Q7");
   const attempts = page.getByRole("list", { name: "Attempts" });
   const before = await attempts.innerText();
   await page.getByRole("button", { name: "Mark objective answers" }).click();
