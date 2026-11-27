@@ -49,3 +49,16 @@ export async function autoGradeObjective(member: Member, examId: string, attempt
 
   return { attempts: finished.length, objectiveMarked: grades.length, writtenToMark: paper.length - objective.length };
 }
+
+// True once any objective answer of these attempts has an automatic mark: opening the page again need not redo it.
+export async function hasAutoGrades(member: Member, attemptIds: string[]): Promise<boolean> {
+  if (attemptIds.length === 0) return false;
+  const { count, error } = await db()
+    .from("grades")
+    .select("id", { count: "exact", head: true })
+    .eq("institution_id", member.institution.id)
+    .eq("source", "auto")
+    .in("attempt_id", attemptIds);
+  if (error) throw new Error(`Database request failed: ${error.message}`);
+  return (count ?? 0) > 0;
+}
