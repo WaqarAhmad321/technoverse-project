@@ -85,6 +85,12 @@ export async function decideDispute(disputeId: string, _previous: DisputeFormSta
   const parsed = decisionSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { status: "error", message: parsed.error.issues[0]?.message ?? "Check the decision and try again." };
   const input = parsed.data;
+  if (dispute.question?.variant_key && (input.decision === "accept_both" || input.decision === "full_marks")) {
+    return {
+      status: "error",
+      message: "This candidate had an AI variant of the question, so a question-wide key change would not reach them. Reject with a reason, or change their mark in Marking.",
+    };
+  }
 
   if (input.decision === "raise_mark") {
     const problem = await raiseWrittenMark(member, exam, dispute, input.marks, input.reason);

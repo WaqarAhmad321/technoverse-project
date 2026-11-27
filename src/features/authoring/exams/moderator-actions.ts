@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { can, requireMember, type Member } from "@/lib/access";
+import { recordAudit } from "@/lib/audit";
 import { db, unwrap } from "@/lib/db";
 import type { Exam, Question } from "@/lib/exam-types";
 import { isModeratorAvailable, moderatePaper, readModeration, type ModeratedQuestion, type Moderation } from "../ai/moderator";
@@ -65,6 +66,9 @@ export async function dismissModeratorFlag(examId: string, index: number): Promi
   if (!can(member, "exam.edit", exam)) return;
   const moderation = readModeration(exam);
   if (!moderation) return;
+  const dismissed = moderation.flags[index];
+  if (!dismissed) return;
   const flags = moderation.flags.map((flag, at) => (at === index ? { ...flag, dismissed: true } : flag));
   await saveModeration(member, exam, { ...moderation, flags });
+  await recordAudit(member, "moderator.flag_dismissed", exam.id, { question_id: dismissed.question_id, kind: dismissed.kind, note: dismissed.note });
 }

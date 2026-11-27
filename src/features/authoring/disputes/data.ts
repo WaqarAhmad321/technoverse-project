@@ -36,7 +36,7 @@ export async function listDisputes(member: Member): Promise<DisputeRow[]> {
 
 export type DisputeDetail = DisputeRow & {
   examId: string;
-  question: Pick<AttemptQuestion, "body" | "options" | "answer_key" | "marks" | "kind" | "rubric">;
+  question: Pick<AttemptQuestion, "body" | "options" | "answer_key" | "marks" | "kind" | "rubric" | "variant_key">;
   attemptId: string;
   answerText: string;
   choices: string[];
@@ -53,7 +53,7 @@ export async function getDispute(member: Member, disputeId: string): Promise<Dis
   );
   if (!result) notFound();
   const [question, answer]: [DisputeDetail["question"] | null, { response: { choices?: string[]; text?: string } } | null] = await Promise.all([
-    db().from("attempt_questions").select("body, options, answer_key, marks, kind, rubric").eq("attempt_id", result.attempt_id).eq("question_id", row.question_id).maybeSingle().then(unwrap),
+    db().from("attempt_questions").select("body, options, answer_key, marks, kind, rubric, variant_key").eq("attempt_id", result.attempt_id).eq("question_id", row.question_id).maybeSingle().then(unwrap),
     db().from("answers").select("response").eq("attempt_id", result.attempt_id).eq("question_id", row.question_id).maybeSingle().then(unwrap),
   ]);
   if (!question) notFound();

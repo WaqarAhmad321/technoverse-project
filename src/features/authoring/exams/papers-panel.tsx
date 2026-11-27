@@ -47,9 +47,9 @@ function countForms(items: PaperItem[]): number {
   }, 1);
 }
 
-function PaperColumn({ title, rows, other }: { title: string; rows: PaperRow[]; other: PaperRow[] }) {
+function PaperColumn({ title, rows, other, order }: { title: string; rows: PaperRow[]; other: PaperRow[]; order: Map<string, number> }) {
   const formOf = new Map(other.map((row) => [row.question_id, row.variant_key]));
-  const byQuestion = [...rows].sort((a, b) => a.question_id.localeCompare(b.question_id));
+  const byQuestion = [...rows].sort((a, b) => (order.get(a.question_id) ?? 0) - (order.get(b.question_id) ?? 0));
   return (
     <section aria-label={title} className="flex flex-col gap-2 rounded-3xl bg-card p-4 md:p-6">
       <h3 className="text-xl font-medium">{title}</h3>
@@ -57,9 +57,9 @@ function PaperColumn({ title, rows, other }: { title: string; rows: PaperRow[]; 
         {byQuestion.map((row) => {
           const isDifferent = formOf.get(row.question_id) !== row.variant_key;
           return (
-            <li key={row.question_id} className={`flex flex-col gap-1 rounded-xl px-3 py-2 ${isDifferent ? "bg-primary/10" : "bg-muted"}`}>
+            <li key={row.question_id} className={`ai-arrive flex flex-col gap-1 rounded-xl px-3 py-2 ${isDifferent ? "bg-secondary ring-1 ring-border" : "bg-muted"}`}>
               <span className="text-base">{firstLine(row.body)}</span>
-              <span className="text-sm text-muted-foreground">
+              <span className={`text-sm text-muted-foreground ${isDifferent ? "font-medium" : ""}`}>
                 {row.topic} · {row.marks} marks · {row.variant_key ? "AI variant" : "Original"}
                 {isDifferent && " · different from the other paper"}
               </span>
@@ -73,7 +73,19 @@ function PaperColumn({ title, rows, other }: { title: string; rows: PaperRow[]; 
 
 export async function PapersPanel({ member, exam }: { member: Member; exam: Exam }) {
   const items = await loadItems(member, exam.id);
+  if (items.length === 0) {
+    return (
+      <section className="flex flex-col gap-3 rounded-3xl bg-card p-4 md:p-6">
+        <h2 className="text-xl font-medium">No questions on this paper yet</h2>
+        <p className="text-base text-muted-foreground">Add questions first, then write variants for them in the question bank.</p>
+        <Link href={`/manage/${exam.id}?tab=questions`} className="self-start text-base underline underline-offset-4">
+          Add questions
+        </Link>
+      </section>
+    );
+  }
   const forms = countForms(items);
+  const order = new Map(items.map((item) => [item.question.id, item.position]));
   if (forms === 1) {
     return (
       <section className="flex flex-col gap-3 rounded-3xl bg-card p-4 md:p-6">
@@ -100,8 +112,8 @@ export async function PapersPanel({ member, exam }: { member: Member; exam: Exam
         </p>
       </section>
       <div className="grid gap-4 lg:grid-cols-2">
-        <PaperColumn title="Candidate A" rows={first} other={second} />
-        <PaperColumn title="Candidate B" rows={second} other={first} />
+        <PaperColumn title="Candidate A" rows={first} other={second} order={order} />
+        <PaperColumn title="Candidate B" rows={second} other={first} order={order} />
       </div>
     </div>
   );

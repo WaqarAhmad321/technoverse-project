@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireMember, type Member } from "@/lib/access";
+import { recordAudit } from "@/lib/audit";
 import { db, unwrap } from "@/lib/db";
 import type { Question, QuestionVariant } from "@/lib/exam-types";
 import { isVariantWriterAvailable, writeVariants } from "../ai/variants";
@@ -42,21 +43,30 @@ export async function writeQuestionVariants(questionId: string): Promise<Variant
   }
 }
 
-async function changeVariant(questionId: string, key: string, change: (variant: QuestionVariant) => QuestionVariant | null): Promise<void> {
+// An approved variant puts a new, AI-written answer key onto papers, so every change is in the audit chain.
+async function changeVariant(
+  questionId: string,
+  key: string,
+  action: "variant.approved" | "variant.removed",
+  change: (variant: QuestionVariant) => QuestionVariant | null,
+): Promise<void> {
   const member = await requireMember("examiner", "institution_admin");
   const question = await getQuestion(member, questionId);
+  const target = current(question).find((variant) => variant.key === key);
+  if (!target) return;
   const next = current(question).flatMap((variant) => {
     if (variant.key !== key) return [variant];
     const changed = change(variant);
     return changed ? [changed] : [];
   });
   await saveVariants(member, question, next);
+  await recordAudit(member, action, question.id, { variant_key: key, answer_key: target.answer_key, body: target.body });
 }
 
 export async function approveVariant(questionId: string, key: string): Promise<void> {
-  await changeVariant(questionId, key, (variant) => ({ ...variant, status: "approved" }));
+  await changeVariant(questionId, key, "variant.approved", (variant) => ({ ...variant, status: "approved" }));
 }
 
 export async function removeVariant(questionId: string, key: string): Promise<void> {
-  await changeVariant(questionId, key, () => null);
+  await changeVariant(questionId, key, "variant.removed", () => null);
 }

@@ -1,26 +1,28 @@
 import { Check, X } from "lucide-react";
 import { SubmitButton } from "@/components/submit-button";
+import { isDemoMode } from "@/lib/demo";
 import type { Question, QuestionVariant } from "@/lib/exam-types";
 import { approveVariant, removeVariant } from "./variant-actions";
 import { WriteVariantsButton } from "./write-variants-button";
 
 function solveLine(variant: QuestionVariant): string {
   const key = variant.answer_key.map((id) => id.toUpperCase()).join(", ");
-  return `Checked: two separate solves, blind to the key, both chose ${key}.`;
+  const checked = `Checked: two separate solves, blind to the key, both chose ${key}.`;
+  return isDemoMode() ? `${checked} (Recorded sample in demo mode; live, Claude solves it twice.)` : checked;
 }
 
 function VariantCard({ questionId, variant, index }: { questionId: string; variant: QuestionVariant; index: number }) {
   const isApproved = variant.status === "approved";
   return (
-    <li className="flex flex-col gap-3 rounded-xl bg-muted p-4">
+    <li className="ai-arrive flex flex-col gap-3 rounded-xl bg-muted p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-sm font-medium">
+        <span className="text-base font-medium">
           Variant {index + 1} · {isApproved ? "Approved, goes on papers" : "Waiting for your approval"}
         </span>
         <span className="flex gap-1">
           {!isApproved && (
             <form action={approveVariant.bind(null, questionId, variant.key)}>
-              <SubmitButton variant="outline" className="rounded-full" aria-label={`Approve variant ${index + 1}`}>
+              <SubmitButton variant="outline" size="lg" className="rounded-full" aria-label={`Approve variant ${index + 1}`}>
                 <Check className="size-5" aria-hidden /> Approve
               </SubmitButton>
             </form>
@@ -55,13 +57,14 @@ export function VariantsPanel({ question }: { question: Question }) {
   const approved = variants.filter((variant) => variant.status === "approved").length;
 
   return (
-    <section aria-labelledby="variants-title" className="flex flex-col gap-4 rounded-3xl bg-card p-4 md:p-6">
+    <section aria-labelledby="variants-title" className="ai-panel flex flex-col gap-4 rounded-3xl bg-card p-4 md:p-6">
       <div className="flex flex-col gap-1">
         <h2 id="variants-title" className="text-xl font-medium">
           A different variant for each candidate
         </h2>
         <p className="text-base text-muted-foreground">
-          Same idea and difficulty, different situation and numbers. A leaked paper or a shared answer then fits nobody else.
+          When one paper leaks on WhatsApp, every candidate has it: MDCAT 2024 in Sindh had to be sat again. Here Claude writes variants
+          with the same idea and difficulty but a different situation and numbers, so a leaked paper or a shared answer helps only the few candidates who got the same variant.
           {approved > 0 && ` Candidates are spread over ${approved + 1} forms: the original and ${approved} approved ${approved === 1 ? "variant" : "variants"}.`}
         </p>
       </div>

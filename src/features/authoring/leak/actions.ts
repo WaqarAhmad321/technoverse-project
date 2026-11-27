@@ -25,8 +25,10 @@ export async function traceLeak(examId: string, _previous: LeakState, formData: 
   ]);
   const rows = unwrap(rowsResult) as unknown as PaperRow[];
   const attempts = unwrap(attemptsResult) as unknown as AttemptRow[];
-  const bodies = new Map(rows.map((row) => [row.question_id, row.body]));
-  const pasteOrder = questionsInPaste(paste, [...bodies].map(([question_id, body]) => ({ question_id, body })));
+  // Every wording a candidate saw counts: with AI variants, one question has several bodies.
+  const wordings = [...new Map(rows.map((row) => [`${row.question_id}|${row.body}`, { question_id: row.question_id, body: row.body }])).values()];
+  const pasteOrder = [...new Set(questionsInPaste(paste, wordings))];
+  const questionCount = new Set(rows.map((row) => row.question_id)).size;
   if (pasteOrder.length === 0) return { error: "None of this exam's questions appear in the pasted text." };
 
   const leakAttempts = attempts.map((attempt) => ({
@@ -34,5 +36,5 @@ export async function traceLeak(examId: string, _previous: LeakState, formData: 
     roll: attempt.candidate?.roll_number ?? "unknown",
     order: rows.filter((row) => row.attempt_id === attempt.id).sort((a, b) => a.position - b.position).map((row) => row.question_id),
   }));
-  return { found: pasteOrder.length, total: bodies.size, matches: rankAttempts(pasteOrder, leakAttempts).slice(0, TOP_MATCHES) };
+  return { found: pasteOrder.length, total: questionCount, matches: rankAttempts(pasteOrder, leakAttempts).slice(0, TOP_MATCHES) };
 }
