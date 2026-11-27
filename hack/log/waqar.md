@@ -11,3 +11,6 @@
 15:20 decided: time back after an outage trusts the phone's count of answers typed offline; capped at 10% of the exam (exams.settings.credit_cap_pct), over 5 min needs the examiner's approval on the monitor
 15:30 fix: audit hashes use key-sorted JSON (jsonb reorders keys); sign-up wait in the smoke fixture is 45s
 15:40 shared: smoke fixture `account` is now one seeded examiner per worker (signed in per test); the database was timing out under per-test seeding. Ran reset-demo to clear leftovers
+15:50 shared: roles controller, invigilator, observer in src/lib/access.ts; can(member, "results.approve", exam) is true for a controller who did not create the exam (for umar/160); "audit.view" for admin, controller, observer
+15:40 shared: smoke fixture `freshAccount` gives a test its own seeded institution; the key-check test uses it because other tests change the shared Quiz 1
+15:58 shared: scripts/local-db up|down runs a local Supabase for the check (needs Docker access); scripts/check uses it when local-db.vars exists. Migrations then also need scripts/db push against the cloud

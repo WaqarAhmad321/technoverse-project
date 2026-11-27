@@ -78,7 +78,7 @@ async function signIn(page: Page, account: Account): Promise<void> {
 // it must not depend on each other's changes. Every account is removed at the end.
 // A test that asks for `accountCandidate` also gets the `account` institution's Ayesha, signed in on her own page.
 export const test = base.extend<
-  { account: Account; world: World; accountCandidate: Page },
+  { account: Account; freshAccount: Account; world: World; accountCandidate: Page },
   { worldAccounts: WorldAccounts; examinerAccount: Account }
 >({
   // One seeded examiner per worker: seeding an institution is the slowest step of the whole check.
@@ -136,6 +136,16 @@ export const test = base.extend<
     } finally {
       await context.close();
       await removeAccount(candidate);
+    }
+  },
+  // For a test that needs the seeded institution untouched (marking, the key check): its own, seeded fresh.
+  freshAccount: async ({ page }, runTest) => {
+    const account = newAccount();
+    try {
+      await signUp(page, account);
+      await runTest(account);
+    } finally {
+      await removeAccount(account);
     }
   },
   account: async ({ page, examinerAccount }, runTest) => {

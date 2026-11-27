@@ -30,7 +30,7 @@ const announcementSchema = z.object({
 });
 
 export async function sendAnnouncement(_previous: AnnouncementState, formData: FormData): Promise<AnnouncementState> {
-  const member = await requireMember("examiner", "institution_admin");
+  const member = await requireMember("examiner", "institution_admin", "controller");
   const parsed = announcementSchema.safeParse({
     examId: formData.get("examId"),
     body: formData.get("body"),
@@ -87,7 +87,7 @@ export async function restartPreview(formData: FormData): Promise<void> {
 const MAX_CREDIT_SECONDS = 60 * 60;
 
 export async function approveCredit(formData: FormData): Promise<void> {
-  const member = await requireMember("examiner", "institution_admin");
+  const member = await requireMember("examiner", "institution_admin", "controller");
   const parsed = z
     .object({ attemptId: z.uuid(), examId: z.uuid(), seconds: z.coerce.number().int().min(1).max(MAX_CREDIT_SECONDS) })
     .safeParse({ attemptId: formData.get("attemptId"), examId: formData.get("examId"), seconds: formData.get("seconds") });

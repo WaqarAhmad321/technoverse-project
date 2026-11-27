@@ -21,3 +21,8 @@ out/
 *.tsbuildinfo
 next-env.d.ts
 .pnpm-debug.log*
+
+# Local Supabase for the check (scripts/local-db)
+local-db.vars
+supabase/.temp/
+supabase/.branches/

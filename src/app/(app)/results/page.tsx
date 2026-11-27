@@ -17,10 +17,10 @@ export default async function MyResultsPage() {
       {results.length === 0 ? (
         <EmptyState message="No published results yet. They appear here as soon as your examiner publishes them." />
       ) : (
-        <ul className="flex flex-col divide-y rounded-lg border">
+        <ul className="flex flex-col gap-1 rounded-3xl bg-card p-2">
           {results.map(({ result, exam }) => (
             <li key={result.id}>
-              <Link href={`/results/${result.id}`} className="flex min-h-14 flex-col gap-1 p-4 hover:bg-muted sm:flex-row sm:items-center sm:justify-between">
+              <Link href={`/results/${result.id}`} className="flex min-h-14 flex-col gap-1 rounded-xl px-4 py-3 transition-colors hover:bg-accent sm:flex-row sm:items-center sm:justify-between">
                 <span className="text-base font-medium">{exam.title}</span>
                 <span className="text-base text-muted-foreground">
                   {formatMarks(result.total)} of {result.max_total} · {Math.round((result.total / result.max_total) * PERCENT)}% ·{" "}

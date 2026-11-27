@@ -6,8 +6,8 @@ import { getUser, requireUser, type SessionUser } from "@/lib/auth";
 import { db, unwrap } from "@/lib/db";
 import type { Institution, Membership, Profile } from "@/lib/exam-types";
 
-// Add a role here (and to `can`) to grow toward the full exam office: controller, moderator, invigilator, observer.
-export const roleSchema = z.enum(["institution_admin", "examiner", "candidate"]);
+// The spec's three roles plus a real Pakistani exam office. Add a role here and its rules in `can`.
+export const roleSchema = z.enum(["institution_admin", "examiner", "candidate", "controller", "invigilator", "observer"]);
 export type Role = z.infer<typeof roleSchema>;
 
 export type Member = { user: SessionUser; profile: Profile; institution: Institution; roles: Role[] };
@@ -94,7 +94,7 @@ export async function requireSuperAdmin(): Promise<Access> {
   return access;
 }
 
-export type Action = "people.manage" | "exam.monitor" | "exam.edit" | "results.publish";
+export type Action = "people.manage" | "exam.monitor" | "exam.edit" | "results.publish" | "results.approve" | "audit.view";
 export type InstitutionResource = { institution_id: string; user_id?: string };
 
 // Finer rules than a role. Separation-of-duty rules for later roles belong here, nowhere else.
@@ -102,12 +102,17 @@ export function can(member: Member, action: Action, resource?: InstitutionResour
   if (resource && resource.institution_id !== member.institution.id) return false;
   const isAdmin = member.roles.includes("institution_admin");
   const isExaminer = member.roles.includes("examiner");
+  const isController = member.roles.includes("controller");
 
   switch (action) {
     case "people.manage":
       return isAdmin;
     case "exam.monitor":
-      return isAdmin || isExaminer;
+      return isAdmin || isExaminer || isController || member.roles.includes("invigilator");
+    case "audit.view":
+      return isAdmin || isController || member.roles.includes("observer");
+    case "results.approve":
+      return isController && resource?.user_id !== member.user.id;
     case "exam.edit":
     case "results.publish":
       return isAdmin || (isExaminer && resource?.user_id === member.user.id);

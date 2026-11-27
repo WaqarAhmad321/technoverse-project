@@ -15,11 +15,11 @@ export function AppHeader({ userName, userEmail, institutionName, items }: AppHe
         <Link href={APP_HOME} className="mr-4 text-xl font-medium tracking-tight">
           {site.name}
         </Link>
-        <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
+        <nav aria-label="Main" className="hidden items-center gap-1 lg:flex">
           <NavLinks items={items} />
         </nav>
         <div className="ml-auto flex items-center gap-3">
-          {institutionName && <span className="hidden text-base text-muted-foreground lg:inline">{institutionName}</span>}
+          {institutionName && <span className="hidden max-w-56 truncate text-base text-muted-foreground 2xl:inline">{institutionName}</span>}
           <UserMenu name={userName} email={userEmail} />
         </div>
       </div>

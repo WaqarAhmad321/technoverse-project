@@ -157,7 +157,7 @@ test("an examiner marks a written answer and cannot go over the question's marks
   await expect(page.getByRole("list", { name: "Needs a second look" })).toContainText("you gave 4, the AI gave 2.5 of 5");
 });
 
-test("the key check flags Q7, blocks publishing, and a key change regrades everyone", async ({ page, account }) => {
+test("the key check flags Q7, blocks publishing, and a key change regrades everyone", async ({ page, freshAccount: account }) => {
   await expect(page.getByRole("heading", { level: 1 })).toContainText(account.name);
   await page.goto("/manage");
   await page.getByRole("link", { name: /Physics Quiz 1/ }).click();
