@@ -11,6 +11,8 @@ import { getEnrollment } from "@/features/authoring/exams/enrollment-data";
 import { EnrollmentPanel } from "@/features/authoring/exams/enrollment-panel";
 import { ExamForm } from "@/features/authoring/exams/exam-form";
 import { ExamTabs, parseExamTab } from "@/features/authoring/exams/exam-tabs";
+import { readModeration } from "@/features/authoring/ai/moderator";
+import { ModeratorPanel } from "@/features/authoring/exams/moderator-panel";
 import { PapersPanel } from "@/features/authoring/exams/papers-panel";
 import { ReviewPanel } from "@/features/authoring/exams/review-panel";
 import { BankPicker, MarksTotal, PaperList } from "@/features/authoring/exams/paper-editor";
@@ -98,7 +100,12 @@ export default async function ManageExamPage({ params, searchParams }: { params:
 
 async function ReviewTab({ member, exam, canEdit, startedCount }: { member: Member; exam: Exam; canEdit: boolean; startedCount: number }) {
   const review = await loadReview(member, exam);
-  return <ReviewPanel exam={exam} questions={review.questions} checklist={runChecklist(review)} canEdit={canEdit} startedCount={startedCount} />;
+  return (
+    <div className="flex flex-col gap-4">
+      <ReviewPanel exam={exam} questions={review.questions} checklist={runChecklist(review)} canEdit={canEdit} startedCount={startedCount} />
+      <ModeratorPanel examId={exam.id} moderation={readModeration(exam)} canEdit={canEdit && exam.status === "draft"} />
+    </div>
+  );
 }
 
 async function QuestionsTab({

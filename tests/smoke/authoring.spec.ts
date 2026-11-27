@@ -253,7 +253,21 @@ test("AI variants of a question pass a blind check, get approved and split candi
   await page.getByRole("link", { name: /Physics Midterm/ }).click();
   await page.getByRole("link", { name: "Papers" }).click();
   await expect(page.getByRole("heading", { name: "3 different papers are possible" })).toBeVisible();
-  await expect(page.getByText("AI variant · different from the other paper")).toBeVisible();
+  await expect(page.getByText("AI variant · different from the other paper").first()).toBeVisible();
+});
+
+test("the AI moderator flags questions outside the pasted syllabus, and a flag can be dismissed", async ({ page, freshAccount: account }) => {
+  expect(account.email).toContain("@");
+  await page.goto("/manage");
+  await page.getByRole("link", { name: /Physics Midterm/ }).click();
+  await page.getByRole("link", { name: "Review and publish" }).click();
+  await page.getByLabel("Syllabus outline (optional)").fill("FSc Part-I Physics: Kinematics, Forces, Energy");
+  await page.getByRole("button", { name: "Check the paper with AI" }).click();
+  const flags = page.getByRole("list", { name: "Moderator flags" });
+  await expect(flags).toContainText("Waves is not in the syllabus you pasted.", { timeout: 60_000 });
+  const before = await flags.getByRole("listitem").count();
+  await flags.getByRole("button", { name: "Dismiss" }).first().click();
+  await expect(flags.getByRole("listitem")).toHaveCount(before - 1);
 });
 
 test("a pasted leak is traced to the papers whose order it matches", async ({ page, account }) => {
