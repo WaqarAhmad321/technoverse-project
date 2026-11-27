@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ArrowDown, ArrowUp, Plus, X } from "lucide-react";
 import { SubmitButton } from "@/components/submit-button";
 import { Button } from "@/components/ui/button";
@@ -47,19 +48,34 @@ export function PaperList({ examId, paper, isEditable }: { examId: string; paper
           {isEditable && (
             <span className="flex shrink-0">
               <form action={moveQuestionInExam.bind(null, examId, question.id, -1)}>
-                <SubmitButton variant="ghost" size="icon" className={iconButton} disabled={index === 0} aria-label={`Move question ${index + 1} up`}>
+                <Tooltip>
+<TooltipTrigger asChild>
+<SubmitButton variant="ghost" size="icon" className={iconButton} disabled={index === 0} aria-label={`Move question ${index + 1} up`}>
                   <ArrowUp className="size-5" aria-hidden />
                 </SubmitButton>
+</TooltipTrigger>
+<TooltipContent>{`Move question ${index + 1} up`}</TooltipContent>
+</Tooltip>
               </form>
               <form action={moveQuestionInExam.bind(null, examId, question.id, 1)}>
-                <SubmitButton variant="ghost" size="icon" className={iconButton} disabled={index === paper.length - 1} aria-label={`Move question ${index + 1} down`}>
+                <Tooltip>
+<TooltipTrigger asChild>
+<SubmitButton variant="ghost" size="icon" className={iconButton} disabled={index === paper.length - 1} aria-label={`Move question ${index + 1} down`}>
                   <ArrowDown className="size-5" aria-hidden />
                 </SubmitButton>
+</TooltipTrigger>
+<TooltipContent>{`Move question ${index + 1} down`}</TooltipContent>
+</Tooltip>
               </form>
               <form action={removeQuestionFromExam.bind(null, examId, question.id)}>
-                <SubmitButton variant="ghost" size="icon" className={iconButton} aria-label={`Remove question ${index + 1}`}>
+                <Tooltip>
+<TooltipTrigger asChild>
+<SubmitButton variant="ghost" size="icon" className={iconButton} aria-label={`Remove question ${index + 1}`}>
                   <X className="size-5" aria-hidden />
                 </SubmitButton>
+</TooltipTrigger>
+<TooltipContent>{`Remove question ${index + 1}`}</TooltipContent>
+</Tooltip>
               </form>
             </span>
           )}

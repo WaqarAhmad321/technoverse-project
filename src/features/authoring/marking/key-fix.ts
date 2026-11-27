@@ -19,6 +19,7 @@ export async function applyKeyFix(member: Member, exam: Exam, fix: KeyFixInput):
       .eq("institution_id", member.institution.id)
       .eq("question_id", fix.question_id)
       .eq("attempt.exam_id", exam.id)
+      .is("variant_key", null)
       .limit(1)
       .maybeSingle(),
   );
