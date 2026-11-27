@@ -1,23 +1,23 @@
 ---
-status: todo
+status: done
 tier: extra
-review: yes
+review: no
 ---
-# Equal-difficulty random papers
+# A different version of each question for every candidate
 
 ## Goal
-When each candidate gets a different random selection from a pool, every paper has about the same expected difficulty, while staying varied. Innovation challenge 5.2. Algorithm: `hack/research/innovation-design.md` (Bayesian-smoothed difficulty, blueprint, hill-climb).
+A leaked paper or a WhatsApp answer is worth nothing, because the next candidate's question is a different version of the same idea at the same difficulty. Innovation 5.5 (leaks: MDCAT 2024 Sindh retest), 5.1 (shared answers in the AI era) and 5.2 (equal papers, measured). Replaces the old equal-difficulty and Leak Tracer plans.
 
 ## What to build
-- Exam setting "Pick N questions per topic from the pool" (stored in `exams.settings`). Difficulty per question from past p-values, smoothed toward its label for new questions.
-- Replace the insides of `buildPaper` in `src/lib/paper.ts` (shared; keep the signature) with: random start, then swaps that bring the paper's expected score within a tolerance of the target, seeded so the same attempt always gets the same paper.
-- A fairness panel on `/manage/[examId]`: histogram of expected scores for 200 simulated papers, naive random vs balanced, and the spread in words.
+- `questions.variants jsonb` (approved and proposed versions, each with its own options and key) and `attempt_questions.variant_key text null` (which version a candidate got; null = the original).
+- On `/questions/[questionId]`: "Write versions": Claude writes 4 versions of an objective question (new situation, new numbers, new wrong options, same concept and difficulty, Pakistani context). Each is solved twice by separate calls that never see the key; a version is kept only when both solves agree with its key. The examiner approves or removes each one.
+- `buildPaper` (shared, same signature) picks the original or an approved version per candidate from the seed.
+- Grading uses each attempt's own snapshot key; the Key Doctor and key fixes look only at the original version.
+- On `/manage/[examId]` Questions tab: "N versions" per question and a side-by-side of two candidates' papers.
+- Works with no key: the button says AI is unavailable and everyone gets the original. Demo mode returns recorded versions.
 
 ## Done when
-On an exam with a 20-question pool and "2 per topic": the fairness panel shows the balanced spread clearly narrower than naive; two starts with the same seed give the same paper.
+Question bank → a Kinematics question → "Write versions" → 4 checked versions appear → approve them → the exam's paper comparison shows two candidates with different versions of that question.
 
 ## Owns
-`src/features/authoring/`, `src/lib/paper.ts` (shared, same signature).
-
-## Stand-ins
-None.
+`src/features/authoring/`, `src/lib/paper.ts` (shared, same signature), one migration.

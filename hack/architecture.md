@@ -104,6 +104,7 @@ Every table: `id uuid primary key default gen_random_uuid()`, `user_id uuid not 
       multiple_rule      text      'all_or_nothing' | 'partial' (partial = max(0, (right − wrong) / keyed) × marks)
       rubric             text null marking guide for written
       version            int       +1 on every edit
+      variants           jsonb     AI-written versions [{ key, body, options, answer_key, status: 'proposed'|'approved', source_version, solves }]; buildPaper picks the original or an approved one per seed
 
     exams                written by: authoring     read by: delivery
       title              text
@@ -151,6 +152,7 @@ Every table: `id uuid primary key default gen_random_uuid()`, `user_id uuid not 
       kind, body, topic, difficulty, marks, multiple_rule, rubric   copied at start
       options            jsonb     in this candidate's order
       answer_key         jsonb     copied at start; never sent to the browser
+      variant_key        text null which AI version this candidate got; null = the original wording
       unique (attempt_id, question_id)
 
     answers              written by: delivery     read by: authoring
