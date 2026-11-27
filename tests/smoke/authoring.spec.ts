@@ -253,5 +253,5 @@ test("AI variants of a question pass a blind check, get approved and split candi
   await page.getByRole("link", { name: /Physics Midterm/ }).click();
   await page.getByRole("link", { name: "Papers" }).click();
   await expect(page.getByRole("heading", { name: "3 different papers are possible" })).toBeVisible();
-  await expect(page.getByRole("region", { name: "Candidate B" })).toContainText("AI variant");
+  await expect(page.getByText("AI variant · different from the other paper")).toBeVisible();
 });
