@@ -6,6 +6,10 @@ export type NavItem = { href: string; label: string; audience: NavAudience[] };
 // One screen per line. Add yours on a new line of its own, with the roles that see it.
 export const navItems: NavItem[] = [
   { href: "/home", label: "Home", audience: ["institution_admin", "examiner", "candidate", "super_admin"] },
+  { href: "/manage", label: "Exams", audience: ["examiner"] },
+  { href: "/questions", label: "Question bank", audience: ["examiner"] },
+  { href: "/roster", label: "Roster", audience: ["examiner"] },
+  { href: "/disputes", label: "Disputes", audience: ["examiner"] },
 ];
 
 export function navFor(audience: NavAudience[]): NavItem[] {
