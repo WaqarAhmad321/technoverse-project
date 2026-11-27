@@ -3,6 +3,7 @@ import { requireMember } from "@/lib/access";
 import { getQuestion, listTopics } from "@/features/authoring/questions/data";
 import { DeleteQuestion } from "@/features/authoring/questions/delete-question";
 import { QuestionForm } from "@/features/authoring/questions/question-form";
+import { VariantsPanel } from "@/features/authoring/questions/variants-panel";
 
 export default async function EditQuestionPage({ params }: { params: Promise<{ questionId: string }> }) {
   const member = await requireMember("examiner", "institution_admin");
@@ -16,6 +17,7 @@ export default async function EditQuestionPage({ params }: { params: Promise<{ q
       <div className="rounded-3xl bg-card p-4 md:p-6">
         <QuestionForm question={question} topics={topics} />
       </div>
+      <VariantsPanel question={question} />
       <DeleteQuestion questionId={question.id} />
     </div>
   );

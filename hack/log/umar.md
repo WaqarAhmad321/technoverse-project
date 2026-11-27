@@ -10,3 +10,6 @@
 16:25 cut: AI re-read on the dispute page for written questions is not built yet
 16:35 shared: voice answers for blind candidates: src/components/voice-controls.tsx (browser speech only), one element in delivery's question-card.tsx and VoiceShortcuts in exam-workspace.tsx (Alt+R read aloud, Alt+V answer by voice)
 16:50 shared: supabase/config.toml local db port 55322 (54322 clashes with another project on umar's laptop); written disputes show the AI re-read and allow raising the mark
+17:05 decided: task 140 is now AI question variants (replaces equal-difficulty papers and the Leak Tracer); 150 stays parked for it
+17:05 shared: questions.variants jsonb + attempt_questions.variant_key; buildPaper (same signature) picks the original or an approved variant per seed, so delivery's start code needed no change
+17:05 decided: key fixes and the Key Doctor look only at the original wording; an AI variant keeps its own twice-checked key

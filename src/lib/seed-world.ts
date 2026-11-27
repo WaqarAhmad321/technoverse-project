@@ -166,6 +166,7 @@ function buildQuestions(context: WorldContext, nowMs: number): SeedQuestion[] {
       multiple_rule: entry.multipleRule ?? "partial",
       rubric: entry.rubric ?? null,
       version: 1,
+      variants: [],
       trueAnswer: entry.trueAnswer ?? entry.answer ?? null,
       bankKey: entry.key,
     };

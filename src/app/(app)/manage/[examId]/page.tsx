@@ -11,6 +11,7 @@ import { getEnrollment } from "@/features/authoring/exams/enrollment-data";
 import { EnrollmentPanel } from "@/features/authoring/exams/enrollment-panel";
 import { ExamForm } from "@/features/authoring/exams/exam-form";
 import { ExamTabs, parseExamTab } from "@/features/authoring/exams/exam-tabs";
+import { PapersPanel } from "@/features/authoring/exams/papers-panel";
 import { ReviewPanel } from "@/features/authoring/exams/review-panel";
 import { BankPicker, MarksTotal, PaperList } from "@/features/authoring/exams/paper-editor";
 import { PHASE_LABEL, formatPakistanTime, toPakistanInputValue } from "@/features/authoring/format";
@@ -78,7 +79,9 @@ export default async function ManageExamPage({ params, searchParams }: { params:
         </section>
       )}
 
-      {tab === "candidates" && <EnrollmentPanel examId={exam.id} view={await getEnrollment(member, exam.id)} canEdit={canEdit} />}
+      {tab === "papers" && <PapersPanel member={member} exam={exam} />}
+
+      {tab === "candidates" &&<EnrollmentPanel examId={exam.id} view={await getEnrollment(member, exam.id)} canEdit={canEdit} />}
 
       {tab === "review" && <ReviewTab member={member} exam={exam} canEdit={canEdit} startedCount={started} />}
 

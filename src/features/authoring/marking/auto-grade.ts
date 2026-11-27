@@ -8,7 +8,7 @@ import type { MarkingAttempt } from "./data";
 
 export type MarkingProgress = { attempts: number; objectiveMarked: number; writtenToMark: number };
 
-type PaperRow = Pick<AttemptQuestion, "attempt_id" | "question_id" | "kind" | "marks" | "multiple_rule" | "answer_key">;
+type PaperRow = Pick<AttemptQuestion, "attempt_id" | "question_id" | "kind" | "marks" | "multiple_rule" | "answer_key" | "variant_key">;
 type AnswerRow = Pick<Answer, "attempt_id" | "question_id" | "response" | "received_at">;
 
 // Idempotent: the same attempts give the same grade rows, upserted on (attempt_id, question_id).
@@ -21,7 +21,7 @@ export async function autoGradeObjective(member: Member, examId: string, attempt
   const scope = member.institution.id;
 
   const [paper, answers, fixes]: [PaperRow[], AnswerRow[], KeyFix[]] = await Promise.all([
-    db().from("attempt_questions").select("attempt_id, question_id, kind, marks, multiple_rule, answer_key").eq("institution_id", scope).in("attempt_id", attemptIds).then(unwrap),
+    db().from("attempt_questions").select("attempt_id, question_id, kind, marks, multiple_rule, answer_key, variant_key").eq("institution_id", scope).in("attempt_id", attemptIds).then(unwrap),
     db().from("answers").select("attempt_id, question_id, response, received_at").eq("institution_id", scope).in("attempt_id", attemptIds).then(unwrap),
     db().from("key_fixes").select("*").eq("institution_id", scope).eq("exam_id", examId).order("created_at", { ascending: true }).then(unwrap),
   ]);
@@ -40,7 +40,8 @@ export async function autoGradeObjective(member: Member, examId: string, attempt
       institution_id: scope,
       attempt_id: row.attempt_id,
       question_id: row.question_id,
-      marks_awarded: scoreObjective(row, counted, fixByQuestion.get(row.question_id)),
+      // A key fix is about the original wording; an AI version carries its own checked key.
+      marks_awarded: scoreObjective(row, counted, row.variant_key ? undefined : fixByQuestion.get(row.question_id)),
       source: "auto",
     };
   });

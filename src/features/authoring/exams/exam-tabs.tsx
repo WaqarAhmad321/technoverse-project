@@ -3,6 +3,7 @@ import Link from "next/link";
 export const EXAM_TABS = [
   { id: "details", label: "Details" },
   { id: "questions", label: "Questions" },
+  { id: "papers", label: "Papers" },
   { id: "candidates", label: "Candidates" },
   { id: "review", label: "Review and publish" },
 ] as const;

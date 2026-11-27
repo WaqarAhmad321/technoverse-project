@@ -232,3 +232,23 @@ test("a candidate challenges a question and the examiner decides it", async ({ p
   await page.getByRole("button", { name: "Reject" }).click();
   await expect(page.getByRole("list", { name: "Challenges" })).toContainText("Rejected", { timeout: 15_000 });
 });
+
+test("AI variants of a question pass a blind check, get approved and split candidates' papers", async ({ page, freshAccount: account }) => {
+  expect(account.email).toContain("@");
+  await page.goto("/questions?q=A train speeds up evenly");
+  await page.getByRole("link", { name: /A train speeds up evenly/ }).click();
+  await page.getByRole("button", { name: "Write variants" }).click();
+  const variants = page.getByRole("list", { name: "Variants" });
+  await expect(variants.getByText(/^Checked: two separate solves/)).toHaveCount(4, { timeout: 60_000 });
+
+  await page.getByRole("button", { name: "Approve variant 1" }).click();
+  await expect(variants).toContainText("Approved, goes on papers");
+  await page.getByRole("button", { name: "Approve variant 2" }).click();
+  await expect(page.getByText(/Candidates are spread over 3 forms/)).toBeVisible();
+
+  await page.goto("/manage");
+  await page.getByRole("link", { name: /Physics Midterm/ }).click();
+  await page.getByRole("link", { name: "Papers" }).click();
+  await expect(page.getByRole("heading", { name: "3 different papers are possible" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Candidate B" })).toContainText("AI variant");
+});
