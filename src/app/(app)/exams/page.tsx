@@ -1,7 +1,7 @@
 import { EmptyState } from "@/components/states";
 import { loadMyExams } from "@/features/delivery/data";
 import { MyExamList } from "@/features/delivery/my-exam-list";
-import { PageHeader } from "@/features/delivery/page-header";
+import { PageHeader } from "@/components/page-header";
 import { requireMember } from "@/lib/access";
 
 export default async function MyExamsPage() {

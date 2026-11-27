@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { EmptyState } from "@/components/states";
 import { loadOpenExamsForStaff } from "@/features/delivery/data";
-import { PageHeader } from "@/features/delivery/page-header";
+import { PageHeader } from "@/components/page-header";
 import { requireMember } from "@/lib/access";
 import { examPhase } from "@/lib/exam-rules";
 import { formatPkt } from "@/lib/format";

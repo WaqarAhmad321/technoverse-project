@@ -1,6 +1,6 @@
 import { EmptyState } from "@/components/states";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PageHeader } from "@/features/delivery/page-header";
+import { PageHeader } from "@/components/page-header";
 import { loadInstitutions } from "@/features/people/data";
 import { requireSuperAdmin } from "@/lib/access";
 import { formatDate } from "@/lib/format";

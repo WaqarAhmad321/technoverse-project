@@ -45,7 +45,7 @@ export async function loadMyExams(member: Member): Promise<MyExam[]> {
       .in("exam_id", examIds)
       .in("candidate_id", candidateIds)
       .eq("is_current", true)
-      .not("published_at", "is", null)
+      .lte("published_at", new Date().toISOString())
       .then(unwrap),
   ]);
 
@@ -149,7 +149,7 @@ export async function loadMyResults(member: Member): Promise<MyResult[]> {
       .eq("institution_id", member.institution.id)
       .in("candidate_id", candidateIds)
       .eq("is_current", true)
-      .not("published_at", "is", null)
+      .lte("published_at", new Date().toISOString())
       .order("published_at", { ascending: false }),
   );
   if (results.length === 0) return [];
@@ -190,7 +190,7 @@ function initials(fullName: string): string {
 // Public: shows only what proves the result is genuine. No email, CNIC, roll number or answers.
 export async function verifyResult(code: string): Promise<VerifiedResult | null> {
   const result: Result | null = unwrap(
-    await db().from("results").select("*").eq("verify_code", code.toUpperCase()).not("published_at", "is", null).maybeSingle(),
+    await db().from("results").select("*").eq("verify_code", code.toUpperCase()).lte("published_at", new Date().toISOString()).maybeSingle(),
   );
   if (!result?.published_at) return null;
 
@@ -208,7 +208,7 @@ export async function verifyResult(code: string): Promise<VerifiedResult | null>
       .select("version, published_at")
       .eq("attempt_id", result.attempt_id)
       .gt("version", result.version)
-      .not("published_at", "is", null)
+      .lte("published_at", new Date().toISOString())
       .order("version", { ascending: false })
       .limit(1)
       .then(unwrap),

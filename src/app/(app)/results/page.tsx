@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { EmptyState } from "@/components/states";
 import { loadMyResults } from "@/features/delivery/data";
-import { PageHeader } from "@/features/delivery/page-header";
+import { PageHeader } from "@/components/page-header";
 import { requireMember } from "@/lib/access";
 import { formatDate, formatMarks } from "@/lib/format";
 

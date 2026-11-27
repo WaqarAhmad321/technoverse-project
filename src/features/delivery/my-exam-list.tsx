@@ -39,17 +39,18 @@ function statusLine({ exam, phase, attempt, result }: MyExam): string {
 }
 
 export function MyExamList({ title, entries, empty }: { title: string; entries: MyExam[]; empty: string }) {
+  const headingId = `section-${title.toLowerCase().replace(/[^a-z]+/g, "-")}`;
   return (
-    <section className="flex flex-col gap-3" aria-labelledby={`section-${title}`}>
-      <h2 id={`section-${title}`} className="text-lg font-semibold">
+    <section className="flex flex-col gap-3" aria-labelledby={headingId}>
+      <h2 id={headingId} className="text-xl font-medium">
         {title}
       </h2>
       {entries.length === 0 ? (
         <p className="text-base text-muted-foreground">{empty}</p>
       ) : (
-        <ul className="flex flex-col divide-y rounded-lg border">
+        <ul className="flex flex-col gap-2 rounded-3xl bg-card p-2">
           {entries.map((entry) => (
-            <li key={entry.exam.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <li key={entry.exam.id} className="flex flex-col gap-3 rounded-xl px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-col gap-1">
                 <span className="text-base font-medium">{entry.exam.title}</span>
                 <span className="text-base text-muted-foreground">{statusLine(entry)}</span>

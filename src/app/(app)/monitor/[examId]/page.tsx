@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { EmptyState } from "@/components/states";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { loadExamForStaff, loadMonitorRows, type MonitorRow } from "@/features/delivery/data";
-import { PageHeader } from "@/features/delivery/page-header";
+import { PageHeader } from "@/components/page-header";
 import { can, requireMember } from "@/lib/access";
 import { formatPkt } from "@/lib/format";
 

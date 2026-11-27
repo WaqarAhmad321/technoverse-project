@@ -1,6 +1,6 @@
 import { EmptyState } from "@/components/states";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PageHeader } from "@/features/delivery/page-header";
+import { PageHeader } from "@/components/page-header";
 import { loadPeople } from "@/features/people/data";
 import { ROLE_LABELS } from "@/features/people/roles";
 import { requireMember } from "@/lib/access";

@@ -1,6 +1,6 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { loadMyResult } from "@/features/delivery/data";
-import { PageHeader } from "@/features/delivery/page-header";
+import { PageHeader } from "@/components/page-header";
 import { requireMember } from "@/lib/access";
 import { formatMarks } from "@/lib/format";
 
