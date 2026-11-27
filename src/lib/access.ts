@@ -50,7 +50,7 @@ const loadAccess = cache(async (user: SessionUser): Promise<Access> => {
       ? []
       : unwrap(await db().from("institutions").select("*").in("id", institutionIds));
 
-  const activeInstitutions = institutions.filter((institution) => institution.status === "active");
+  const activeInstitutions = institutions.filter((institution) => institution.status === "active" || institution.status === "pending");
   const firstActiveId = institutionIds.find((id) => activeInstitutions.some((institution) => institution.id === id));
   const institution = activeInstitutions.find((candidate) => candidate.id === firstActiveId);
 
@@ -94,7 +94,7 @@ export async function requireSuperAdmin(): Promise<Access> {
   return access;
 }
 
-export type Action = "people.manage" | "exam.monitor" | "exam.edit" | "results.publish" | "results.approve" | "audit.view";
+export type Action = "people.manage" | "exam.monitor" | "exam.edit" | "results.publish" | "results.approve" | "paper.approve" | "audit.view";
 export type InstitutionResource = { institution_id: string; user_id?: string };
 
 // Finer rules than a role. Separation-of-duty rules for later roles belong here, nowhere else.
@@ -112,6 +112,7 @@ export function can(member: Member, action: Action, resource?: InstitutionResour
     case "audit.view":
       return isAdmin || isController || member.roles.includes("observer");
     case "results.approve":
+    case "paper.approve":
       return isController && resource?.user_id !== member.user.id;
     case "exam.edit":
     case "results.publish":

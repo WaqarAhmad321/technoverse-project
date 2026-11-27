@@ -32,9 +32,11 @@ async function grant(grantedBy: string, institutionId: string, memberId: string,
   unwrap(await db().from("memberships").upsert(rows, { onConflict: "institution_id,member_id,role", ignoreDuplicates: true }));
 }
 
-async function createInstitution(ownerId: string, name: string): Promise<string> {
+type InstitutionStatus = "active" | "pending";
+
+async function createInstitution(ownerId: string, name: string, status: InstitutionStatus): Promise<string> {
   const id = randomUUID();
-  unwrap(await db().from("institutions").insert({ id, user_id: ownerId, name, kind: DEMO_INSTITUTION.kind, city: DEMO_INSTITUTION.city }));
+  unwrap(await db().from("institutions").insert({ id, user_id: ownerId, name, kind: DEMO_INSTITUTION.kind, city: DEMO_INSTITUTION.city, status }));
   return id;
 }
 
@@ -46,7 +48,8 @@ export async function createAccount(account: NewAccount): Promise<CreateAccountR
   await saveProfile({ userId: created.id, displayName: account.name, email: account.email });
   if (account.kind === "candidate") return "created";
 
-  const institutionId = await createInstitution(created.id, account.institutionName);
+  // A new institution waits for the platform admin; it can set everything up but not publish until approved.
+  const institutionId = await createInstitution(created.id, account.institutionName, "pending");
   await grant(created.id, institutionId, created.id, ["institution_admin", "examiner"]);
   await seedSampleData({
     ownerId: created.id,
@@ -101,7 +104,7 @@ export async function ensureDemoWorld(env: Pick<Env, "DEMO_EMAIL" | "DEMO_PASSWO
   const found: { id: string } | null = unwrap(
     await db().from("institutions").select("id").eq("user_id", kamranId).eq("name", DEMO_INSTITUTION.name).maybeSingle(),
   );
-  const institutionId = found?.id ?? (await createInstitution(kamranId, DEMO_INSTITUTION.name));
+  const institutionId = found?.id ?? (await createInstitution(kamranId, DEMO_INSTITUTION.name, "active"));
 
   await grant(kamranId, institutionId, kamranId, ["examiner"]);
   await grant(kamranId, institutionId, ids.get("admin") ?? "", ["institution_admin"]);

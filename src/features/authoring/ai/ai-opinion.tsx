@@ -10,6 +10,7 @@ export async function AiOpinion({ member, attemptId, questionId, item }: AiOpini
   if (!mark) return <p className="text-base text-muted-foreground">AI second marker is unavailable right now. Mark as usual.</p>;
   return (
     <div className="flex flex-col gap-2 rounded-xl border border-border p-4" aria-label="AI second marker">
+      <h3 className="text-base font-medium">Second opinion from the AI marker</h3>
       <p className="text-base">
         <span className="font-medium">AI second marker: {mark.marks_awarded} of {item.marks}.</span> {mark.summary}
       </p>

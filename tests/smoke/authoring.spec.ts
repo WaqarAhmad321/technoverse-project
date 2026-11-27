@@ -130,14 +130,16 @@ test("the publish checklist blocks a wrong total, then the candidate sees the pu
 
 test("opening a closed exam marks every objective answer, and marking again changes nothing", async ({ page, account }) => {
   await expect(page.getByRole("heading", { level: 1 })).toContainText(account.name);
-  await page.goto("/manage");
-  await page.getByRole("link", { name: /Physics Quiz 1/ }).click();
-  await page.getByRole("link", { name: "Open marking" }).click();
-  await expect(page.getByText(/^30 attempts · \d+ objective answers marked/)).toBeVisible({ timeout: 20_000 });
+  await page.goto("/marking");
+  await page.getByRole("list", { name: "Exams to mark" }).getByRole("link", { name: /Physics Quiz 1/ }).click();
+  const steps = page.getByRole("navigation", { name: "Marking steps" });
+  await expect(steps).toContainText("Key check · 1 to resolve", { timeout: 20_000 });
+  await steps.getByRole("link", { name: /Question analytics/ }).click();
   await expect(page.getByRole("list", { name: "Question analytics" })).toContainText("Q7");
+  await steps.getByRole("link", { name: /Results/ }).click();
   const attempts = page.getByRole("list", { name: "Attempts" });
   const before = await attempts.innerText();
-  await page.getByRole("button", { name: "Mark objective answers" }).click();
+  await page.getByRole("button", { name: "Mark objective answers again" }).click();
   await page.reload();
   await expect(attempts).toBeVisible();
   expect(await attempts.innerText()).toBe(before);
@@ -145,10 +147,11 @@ test("opening a closed exam marks every objective answer, and marking again chan
 
 test("an examiner marks a written answer and cannot go over the question's marks", async ({ page, account }) => {
   await expect(page.getByRole("heading", { level: 1 })).toContainText(account.name);
-  await page.goto("/manage");
-  await page.getByRole("link", { name: /Physics Quiz 1/ }).click();
-  await page.getByRole("link", { name: "Open marking" }).click();
+  await page.goto("/marking");
+  await page.getByRole("list", { name: "Exams to mark" }).getByRole("link", { name: /Physics Quiz 1/ }).click();
+  await page.getByRole("navigation", { name: "Marking steps" }).getByRole("link", { name: /Written answers/ }).click();
   await expect(page.getByText("Marking in progress (0 of 30 written answers)")).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText("Roll 0231")).toBeVisible();
   await page.getByLabel(/^Marks out of/).fill("7");
   await page.getByRole("button", { name: "Save and next" }).click();
   await expect(page.getByText("This question is worth 5 marks.")).toBeVisible();
@@ -161,21 +164,26 @@ test("an examiner marks a written answer and cannot go over the question's marks
 
 test("the key check flags Q7, blocks publishing, and a key change regrades everyone", async ({ page, freshAccount: account }) => {
   await expect(page.getByRole("heading", { level: 1 })).toContainText(account.name);
-  await page.goto("/manage");
-  await page.getByRole("link", { name: /Physics Quiz 1/ }).click();
-  await page.getByRole("link", { name: "Open marking" }).click();
+  await page.goto("/marking");
+  await page.getByRole("list", { name: "Exams to mark" }).getByRole("link", { name: /Physics Quiz 1/ }).click();
+  const steps = page.getByRole("navigation", { name: "Marking steps" });
   const flags = page.getByRole("list", { name: "Flagged questions" });
   await expect(flags).toContainText(/Q7: \d+% of the top scorers chose B, the key says C\./, { timeout: 20_000 });
+
+  await steps.getByRole("link", { name: /Results/ }).click();
   await expect(page.getByRole("button", { name: "Publish results" })).toBeDisabled();
   const ayesha = page.getByRole("list", { name: "Attempts" }).getByRole("listitem").filter({ hasText: "Ayesha Khan" });
   const before = Number((await ayesha.innerText()).match(/([\d.]+) of \d+ marks/)?.[1]);
 
+  await steps.getByRole("link", { name: /Key check/ }).click();
   await page.getByLabel("Reason (shown on results)").fill("Top scorers chose B; B is correct");
   await page.getByRole("button", { name: "Change key to B" }).click();
   await expect(page.getByText("No answer key looks wrong.")).toBeVisible({ timeout: 20_000 });
+  await expect(steps).toContainText("Key check · clear");
+
+  await steps.getByRole("link", { name: /Results/ }).click();
   const after = Number((await ayesha.innerText()).match(/([\d.]+) of \d+ marks/)?.[1]);
   expect(after).toBeGreaterThan(before);
-
   await expect(page.getByText("Exam summary")).toBeVisible();
   await page.getByRole("button", { name: "Publish results" }).click();
   await expect(page.getByText(/^Results published/)).toBeVisible({ timeout: 20_000 });
