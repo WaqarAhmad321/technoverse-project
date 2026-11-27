@@ -8,7 +8,31 @@ import { recordAudit } from "@/lib/audit";
 import { db, unwrap } from "@/lib/db";
 import { getExam } from "../exams/data";
 import { applyKeyFix } from "../marking/key-fix";
-import { getDispute, getMyResult } from "./data";
+import { getDispute, getMyResult, type DisputeDetail } from "./data";
+import { listFinishedAttempts } from "../marking/data";
+import { reissueResults } from "../marking/results";
+import type { Member } from "@/lib/access";
+import type { Exam } from "@/lib/exam-types";
+
+const HALF_STEPS = 2;
+
+// No-penalty rule: the new mark must be at least the old one and within the question's marks.
+async function raiseWrittenMark(member: Member, exam: Exam, dispute: DisputeDetail, marks: number | undefined, reason: string): Promise<string | null> {
+  if (marks === undefined || Number.isNaN(marks)) return "Enter the new mark.";
+  if (marks < dispute.awarded) return `A challenge can never lower a mark. The candidate has ${dispute.awarded}.`;
+  if (marks > dispute.question.marks) return `This question is worth ${dispute.question.marks} marks.`;
+  if (!Number.isInteger(marks * HALF_STEPS)) return "Give marks in steps of 0.5.";
+  unwrap(
+    await db()
+      .from("grades")
+      .upsert(
+        { user_id: member.user.id, institution_id: member.institution.id, attempt_id: dispute.attemptId, question_id: dispute.question_id, marks_awarded: marks, source: "manual", graded_by: member.user.id, feedback: reason },
+        { onConflict: "attempt_id,question_id" },
+      ),
+  );
+  await reissueResults(member, exam, await listFinishedAttempts(member, exam.id), reason);
+  return null;
+}
 
 export type DisputeFormState = { status: "error"; message: string } | null;
 
@@ -45,7 +69,8 @@ export async function sendChallenge(resultId: string, _previous: DisputeFormStat
 }
 
 const decisionSchema = z.object({
-  decision: z.enum(["accept_both", "full_marks", "reject"]),
+  decision: z.enum(["accept_both", "full_marks", "reject", "raise_mark"]),
+  marks: z.coerce.number().optional(),
   option: z.string().max(4).optional(),
   reason: z.string().trim().min(5, "Write a short reason. The candidate will see it."),
 });
@@ -61,7 +86,10 @@ export async function decideDispute(disputeId: string, _previous: DisputeFormSta
   if (!parsed.success) return { status: "error", message: parsed.error.issues[0]?.message ?? "Check the decision and try again." };
   const input = parsed.data;
 
-  if (input.decision !== "reject" && dispute.question_id) {
+  if (input.decision === "raise_mark") {
+    const problem = await raiseWrittenMark(member, exam, dispute, input.marks, input.reason);
+    if (problem) return { status: "error", message: problem };
+  } else if (input.decision !== "reject" && dispute.question_id) {
     const problem = await applyKeyFix(member, exam, { question_id: dispute.question_id, choice: input.decision, option: input.option, reason: input.reason });
     if (problem) return { status: "error", message: problem };
   }

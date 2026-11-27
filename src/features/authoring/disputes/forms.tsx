@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { FormMessage } from "@/components/form-message";
 import { SubmitButton } from "@/components/submit-button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { selectClass } from "../format";
@@ -64,6 +65,31 @@ export function DecisionForm({ action, options }: { action: Action; options: { i
         </SubmitButton>
         <SubmitButton size="lg" variant="outline" name="decision" value="full_marks">
           Uphold: full marks for everyone
+        </SubmitButton>
+        <SubmitButton size="lg" variant="ghost" name="decision" value="reject">
+          Reject
+        </SubmitButton>
+      </div>
+    </form>
+  );
+}
+
+export function WrittenDecisionForm({ action, awarded, marks }: { action: Action; awarded: number; marks: number }) {
+  const [state, formAction] = useActionState(action, null);
+  return (
+    <form action={formAction} className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2 sm:max-w-48">
+        <Label htmlFor="marks">New mark out of {marks}</Label>
+        <Input id="marks" name="marks" inputMode="decimal" defaultValue={String(awarded)} />
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="reason">Reason (the candidate sees it)</Label>
+        <Textarea id="reason" name="reason" rows={2} />
+      </div>
+      {state && <FormMessage tone="error">{state.message}</FormMessage>}
+      <div className="flex flex-wrap gap-2">
+        <SubmitButton size="lg" name="decision" value="raise_mark">
+          Uphold: award this mark
         </SubmitButton>
         <SubmitButton size="lg" variant="ghost" name="decision" value="reject">
           Reject

@@ -36,7 +36,9 @@ export async function listDisputes(member: Member): Promise<DisputeRow[]> {
 
 export type DisputeDetail = DisputeRow & {
   examId: string;
-  question: Pick<AttemptQuestion, "body" | "options" | "answer_key" | "marks" | "kind">;
+  question: Pick<AttemptQuestion, "body" | "options" | "answer_key" | "marks" | "kind" | "rubric">;
+  attemptId: string;
+  answerText: string;
   choices: string[];
   awarded: number;
 };
@@ -50,14 +52,16 @@ export async function getDispute(member: Member, disputeId: string): Promise<Dis
     await db().from("results").select("attempt_id, exam_id, breakdown").eq("id", row.result_id).maybeSingle(),
   );
   if (!result) notFound();
-  const [question, answer]: [DisputeDetail["question"] | null, { response: { choices?: string[] } } | null] = await Promise.all([
-    db().from("attempt_questions").select("body, options, answer_key, marks, kind").eq("attempt_id", result.attempt_id).eq("question_id", row.question_id).maybeSingle().then(unwrap),
+  const [question, answer]: [DisputeDetail["question"] | null, { response: { choices?: string[]; text?: string } } | null] = await Promise.all([
+    db().from("attempt_questions").select("body, options, answer_key, marks, kind, rubric").eq("attempt_id", result.attempt_id).eq("question_id", row.question_id).maybeSingle().then(unwrap),
     db().from("answers").select("response").eq("attempt_id", result.attempt_id).eq("question_id", row.question_id).maybeSingle().then(unwrap),
   ]);
   if (!question) notFound();
   return {
     ...row,
     examId: result.exam_id,
+    attemptId: result.attempt_id,
+    answerText: answer?.response.text ?? "",
     question,
     choices: answer?.response.choices ?? [],
     awarded: result.breakdown.find((line) => line.question_id === row.question_id)?.marks_awarded ?? 0,
