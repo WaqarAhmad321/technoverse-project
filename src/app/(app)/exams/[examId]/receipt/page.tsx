@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { loadMyAttempt, loadPaper, loadSavedAnswers } from "@/features/delivery/attempts";
 import { loadMyExam } from "@/features/delivery/data";
 import { requireMember } from "@/lib/access";
+import { db, unwrap } from "@/lib/db";
 import { answerCounts } from "@/lib/exam-rules";
 import { formatPkt } from "@/lib/format";
 
@@ -15,7 +16,12 @@ export default async function ReceiptPage({ params }: { params: Promise<{ examId
   const [{ exam }, attempt] = await Promise.all([loadMyExam(member, examId), loadMyAttempt(member, examId)]);
   if (!attempt?.receipt_code || !attempt.submitted_at) notFound();
 
-  const [paper, saved] = await Promise.all([loadPaper(attempt.id), loadSavedAnswers(attempt.id)]);
+  const [paper, saved, reportedCase]: [Awaited<ReturnType<typeof loadPaper>>, Awaited<ReturnType<typeof loadSavedAnswers>>, { id: string } | null] =
+    await Promise.all([
+      loadPaper(attempt.id),
+      loadSavedAnswers(attempt.id),
+      db().from("integrity_cases").select("id").eq("attempt_id", attempt.id).eq("status", "reported").maybeSingle().then(unwrap),
+    ]);
   const received = saved.filter((answer) => answerCounts(answer, attempt)).length;
 
   return (
@@ -28,6 +34,9 @@ export default async function ReceiptPage({ params }: { params: Promise<{ examId
             ? "Submitted automatically when the time ran out, with every answer the server received in time."
             : "The exam server accepted your answers."}
         </p>
+        {reportedCase && (
+          <p className="text-base">A case is open on this attempt with the Unfair Means Committee. You will hear from your institution.</p>
+        )}
         <dl className="flex flex-col gap-3 text-base">
           <div>
             <dt className="text-sm text-muted-foreground">Receipt code</dt>

@@ -315,7 +315,7 @@ export function ExamWorkspace(props: WorkspaceProps) {
   }
 
   const sendSignal = useCallback(
-    (signal: { kind: "tab_hidden"; seconds: number } | { kind: "paste"; chars: number }) => {
+    (signal: { kind: "tab_hidden"; seconds: number } | { kind: "paste"; chars: number } | { kind: "copy"; chars: number }) => {
       void fetch(`/api/attempts/${attemptId}/signal`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -336,9 +336,25 @@ export function ExamWorkspace(props: WorkspaceProps) {
       hiddenSince.current = null;
       if (seconds >= MIN_HIDDEN_SECONDS) sendSignal({ kind: "tab_hidden", seconds });
     };
+    // A tab closed while hidden never fires visibilitychange again, so the time away is sent on the way out.
+    const onPageHide = () => {
+      if (hiddenSince.current === null) return;
+      const seconds = Math.round((Date.now() - hiddenSince.current) / MS_PER_SECOND);
+      hiddenSince.current = null;
+      if (seconds < MIN_HIDDEN_SECONDS) return;
+      const payload = new Blob([JSON.stringify({ kind: "tab_hidden", seconds })], { type: "application/json" });
+      navigator.sendBeacon(`/api/attempts/${attemptId}/signal`, payload);
+    };
+    const onCopy = () => sendSignal({ kind: "copy", chars: window.getSelection()?.toString().length ?? 0 });
     document.addEventListener("visibilitychange", onVisibility);
-    return () => document.removeEventListener("visibilitychange", onVisibility);
-  }, [sendSignal]);
+    document.addEventListener("copy", onCopy);
+    window.addEventListener("pagehide", onPageHide);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      document.removeEventListener("copy", onCopy);
+      window.removeEventListener("pagehide", onPageHide);
+    };
+  }, [attemptId, sendSignal]);
 
   function changePrefs(next: WorkspacePrefs) {
     setPrefs(next);

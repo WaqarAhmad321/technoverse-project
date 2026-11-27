@@ -21,3 +21,4 @@
 17:35 decided: exam page has a sticky toolbar (timer, rough work, display menu, finish); rough work is a right-side drawer with Notes and Sketch tabs, stored as JSON in scratchpads.body
 17:48 shared: approvals table + src/lib/approvals.ts (approvalGate, isApproved, institutionCanPublish) gate publishExam and publishResults when the institution has a controller; new institutions start pending until the platform admin approves; smoke fixtures approve test institutions
 18:10 shared: candidates.section (class/section) with enroll-by-section on the exam's Candidates tab; roster shows Joined / Not joined yet and a join link (/sign-up?as=candidate)
+18:51 shared: attempts.status gains 'voided' (examiner integrity decision); marking and results lists already filter on submitted/auto_submitted so voided is skipped; new table integrity_cases

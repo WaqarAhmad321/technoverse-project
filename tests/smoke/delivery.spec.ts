@@ -104,3 +104,37 @@ test("an examiner previews a draft exam as a candidate, and it is not recorded",
   await expect(page.getByRole("timer")).toBeVisible();
   await expect(page.getByRole("button", { name: /^Question 13,/ })).toBeVisible();
 });
+
+test("a candidate who leaves the exam tab appears on the examiner's integrity screen", async ({ page, world }) => {
+  const { candidatePage } = world;
+  const hideMs = 2_100;
+  const hides = 5;
+
+  await candidatePage.goto("/exams");
+  await candidatePage.getByRole("region", { name: "Open now" }).getByRole("link", { name: "Start exam" }).click();
+  await candidatePage.getByRole("button", { name: "Start exam" }).click();
+  await expect(candidatePage).toHaveURL(/\/take$/, { timeout: START_EXAM_MS });
+
+  for (let count = 0; count < hides; count += 1) {
+    await candidatePage.evaluate(() => {
+      Object.defineProperty(document, "visibilityState", { value: "hidden", configurable: true });
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await candidatePage.waitForTimeout(hideMs);
+    await candidatePage.evaluate(() => {
+      Object.defineProperty(document, "visibilityState", { value: "visible", configurable: true });
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+  }
+
+  await page.goto("/monitor");
+  await page.getByRole("link", { name: /Waves Practice Quiz/ }).click();
+  await page.getByRole("link", { name: /Integrity review/ }).click();
+  await expect(page.getByRole("heading", { name: /Ayesha Khan/ })).toBeVisible({ timeout: SAVE_MS });
+  await expect(page.getByText("signals for review, not evidence").first()).toBeVisible();
+
+  await page.getByLabel("Your note (required)").fill("Three absences from the tab; asking the committee to look.");
+  await page.getByRole("button", { name: "Report to the Unfair Means Committee" }).click();
+  await expect(page.getByText("Reported to the Unfair Means Committee").first()).toBeVisible({ timeout: SAVE_MS });
+  await expect(page.getByText("Your note: Three absences")).toBeVisible();
+});
