@@ -13,9 +13,10 @@ import type { ExamPhase } from "@/lib/exam-rules";
 
 const PHASE_TONE: Record<ExamPhase, StatusTone> = { draft: "draft", upcoming: "ready", open: "live", closed: "done" };
 
-export default async function ManageExamsPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
+export default async function ManageExamsPage({ searchParams }: { searchParams: Promise<{ page?: string; examiner?: string }> }) {
   const member = await requireMember("examiner", "institution_admin");
-  const [allExams, { page }] = await Promise.all([listExams(member), searchParams]);
+  const [listed, { page, examiner }] = await Promise.all([listExams(member), searchParams]);
+  const allExams = examiner ? listed.filter((exam) => exam.user_id === examiner) : listed;
   const shown = paginate(allExams, page);
   const exams = shown.rows;
 
@@ -64,7 +65,7 @@ export default async function ManageExamsPage({ searchParams }: { searchParams: 
           ))}
         </ul>
       )}
-      <Pagination page={shown} basePath="/manage" noun="exams" />
+      <Pagination page={shown} basePath="/manage" params={examiner ? { examiner } : {}} noun="exams" />
     </div>
   );
 }
