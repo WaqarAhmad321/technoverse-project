@@ -62,9 +62,9 @@ export default async function DisputePage({ params }: { params: Promise<{ disput
         <h2 className="text-xl font-medium">{dispute.status === "open" ? "Your decision" : "Decision"}</h2>
         {dispute.status === "open" ? (
           isWritten ? (
-            <WrittenDecisionForm action={decideDispute.bind(null, dispute.id)} awarded={dispute.awarded} marks={dispute.question.marks} />
+            <WrittenDecisionForm disputeId={dispute.id} action={decideDispute.bind(null, dispute.id)} awarded={dispute.awarded} marks={dispute.question.marks} />
           ) : (
-            <DecisionForm action={decideDispute.bind(null, dispute.id)} options={others} />
+            <DecisionForm disputeId={dispute.id} action={decideDispute.bind(null, dispute.id)} options={others} />
           )
         ) : (
           <div className="flex flex-col gap-2">

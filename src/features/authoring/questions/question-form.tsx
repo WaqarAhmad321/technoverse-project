@@ -1,6 +1,8 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { AiFillButton } from "@/components/ai-fill-button";
+import { draftRubric } from "../ai/draft-actions";
 import { toast } from "sonner";
 import { Plus, X } from "lucide-react";
 import { FormMessage } from "@/components/form-message";
@@ -215,7 +217,19 @@ export function QuestionForm({ question, topics }: { question: Question | null; 
 
       {kind === "written" && (
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="rubric">Marking guide</Label>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Label htmlFor="rubric">Marking guide</Label>
+            <AiFillButton
+              targetId="rubric"
+              run={(current) =>
+                draftRubric(
+                  (document.getElementById("body") as HTMLTextAreaElement | null)?.value ?? "",
+                  (document.getElementById("marks") as HTMLInputElement | null)?.value ?? "",
+                  current,
+                )
+              }
+            />
+          </div>
           <Textarea id="rubric" name="rubric" rows={4} defaultValue={question?.rubric ?? ""} placeholder="2 marks: names inertia. 2 marks: ..." className="text-base" />
         </div>
       )}

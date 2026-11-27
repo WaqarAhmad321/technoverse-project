@@ -1,6 +1,8 @@
 "use client";
 
 import { useActionState } from "react";
+import { AiFillButton } from "@/components/ai-fill-button";
+import { draftFeedback } from "../ai/draft-actions";
 import { ArrowRight } from "lucide-react";
 import { FormMessage } from "@/components/form-message";
 import { isActionError, useActionToast } from "@/components/use-action-toast";
@@ -28,7 +30,10 @@ export function WrittenForm({ item, action }: WrittenFormProps) {
         <Input id="marks" name="marks" inputMode="decimal" required autoComplete="off" />
       </div>
       <div className="flex flex-col gap-2">
-        <Label htmlFor="feedback">Feedback for the candidate (optional)</Label>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Label htmlFor="feedback">Feedback for the candidate (optional)</Label>
+          <AiFillButton targetId="feedback" run={(current) => draftFeedback(item.attempt_id, item.question_id, current)} />
+        </div>
         <Textarea id="feedback" name="feedback" rows={2} />
       </div>
       {state && isActionError(state) && <FormMessage tone="error">{state.message}</FormMessage>}
