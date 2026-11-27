@@ -7,3 +7,4 @@
 13:50 note: the smoke test now takes about 2 minutes, mostly account setup against the remote database
 14:18 shared: smoke waits raised (expect 12s, test 90s) in playwright.config.ts: every save is several round trips to the remote database
 14:40 decided: result PDF is built on the server with pdf-lib and qrcode; standard fonts, so non-Latin characters are dropped from the PDF
+15:00 shared: .high-contrast class in globals.css (candidate display setting); /api/time returns server time

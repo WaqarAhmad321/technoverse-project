@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { startExam } from "@/features/delivery/actions";
 import { loadMyAttempt } from "@/features/delivery/attempts";
 import { loadMyExam, loadQuestionPreviews } from "@/features/delivery/data";
+import { SystemCheck } from "@/features/delivery/system-check";
 import { requireMember } from "@/lib/access";
 import { formatPkt } from "@/lib/format";
 
@@ -38,6 +39,7 @@ export default async function ExamInstructionsPage({
         <h2 className="text-xl font-medium">Before you start</h2>
         <p className="text-base whitespace-pre-line">{exam.instructions}</p>
       </section>
+      {phase === "open" && !attempt && <SystemCheck />}
       {typeof notice === "string" && <FormMessage tone="error">{notice.slice(0, MAX_NOTICE_LENGTH)}</FormMessage>}
       {phase === "upcoming" && <p className="text-base">This exam opens {formatPkt(exam.opens_at)}.</p>}
       {phase === "closed" && !attempt && <p className="text-base">This exam closed {formatPkt(exam.closes_at)}.</p>}

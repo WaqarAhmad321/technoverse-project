@@ -44,7 +44,7 @@ export async function ownAttemptFromRequest(
 ): Promise<{ member: Member; attempt: CandidateAttempt } | null> {
   const { attemptId } = await params;
   if (!z.uuid().safeParse(attemptId).success) return null;
-  const member = await memberOrNull("candidate");
+  const member = await memberOrNull("candidate", "examiner", "institution_admin");
   if (!member) return null;
   const attempt = await loadOwnAttempt(member, attemptId);
   return attempt ? { member, attempt } : null;

@@ -181,20 +181,111 @@ export async function loadAnnouncements(examId: string): Promise<Pick<Announceme
   );
 }
 
-// Route handlers: the attempt must belong to one of this person's roster rows.
+// Route handlers: the attempt must belong to one of this person's roster rows, or be their own sandbox.
 export async function loadOwnAttempt(member: Member, attemptId: string): Promise<CandidateAttempt | null> {
   const candidateIds = await myCandidateIds(member);
-  if (candidateIds.length === 0) return null;
   const attempt: CandidateAttempt | null = unwrap(
     await db()
       .from("attempts")
       .select(ATTEMPT_COLUMNS)
       .eq("id", attemptId)
       .eq("institution_id", member.institution.id)
-      .in("candidate_id", candidateIds)
       .maybeSingle(),
   );
-  return attempt ? finishIfExpired(attempt) : null;
+  if (!attempt) return null;
+  const isMine = attempt.is_sandbox
+    ? attempt.user_id === member.user.id
+    : attempt.candidate_id !== null && candidateIds.includes(attempt.candidate_id);
+  return isMine ? finishIfExpired(attempt) : null;
+}
+
+async function createAttempt(member: Member, exam: Exam, candidateId: string | null, extraTimePct: number): Promise<CandidateAttempt> {
+  const items = await loadExamItems(exam);
+  const seed = newPaperSeed();
+  const startedAt = new Date();
+  const minutes = exam.duration_minutes * (1 + extraTimePct / PERCENT);
+  const owned = { user_id: member.user.id, institution_id: member.institution.id };
+  const created: CandidateAttempt | null = unwrap(
+    await db()
+      .from("attempts")
+      .insert({
+        ...owned,
+        exam_id: exam.id,
+        candidate_id: candidateId,
+        is_sandbox: candidateId === null,
+        status: "in_progress",
+        seed,
+        started_at: startedAt.toISOString(),
+        deadline_at: new Date(startedAt.getTime() + minutes * MS_PER_MINUTE).toISOString(),
+        last_seen_at: startedAt.toISOString(),
+      })
+      .select(ATTEMPT_COLUMNS)
+      .single(),
+  );
+  if (!created) throw new Error("The preview attempt was not created.");
+  const attempt = created;
+  const paper = buildPaper(exam, items, seed).map((row) => ({ ...owned, attempt_id: attempt.id, ...row }));
+  if (paper.length > 0) unwrap(await db().from("attempt_questions").insert(paper));
+  return attempt;
+}
+
+async function findSandbox(member: Member, examId: string): Promise<CandidateAttempt | null> {
+  return unwrap(
+    await db()
+      .from("attempts")
+      .select(ATTEMPT_COLUMNS)
+      .eq("exam_id", examId)
+      .eq("is_sandbox", true)
+      .eq("user_id", member.user.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  );
+}
+
+// The examiner's preview: the real workspace on a sandbox attempt that no grade, result or statistic counts.
+export async function loadOrStartSandbox(member: Member, exam: Exam): Promise<CandidateAttempt> {
+  const existing = await findSandbox(member, exam.id);
+  if (existing && !isAttemptFinished(existing)) return existing;
+  if (existing) await restartSandbox(member, exam.id);
+  return createAttempt(member, exam, null, 0);
+}
+
+export async function restartSandbox(member: Member, examId: string): Promise<void> {
+  unwrap(
+    await db()
+      .from("attempts")
+      .delete()
+      .eq("exam_id", examId)
+      .eq("is_sandbox", true)
+      .eq("user_id", member.user.id)
+      .eq("institution_id", member.institution.id),
+  );
+}
+
+export async function loadScratch(attemptId: string): Promise<Record<string, string>> {
+  const rows: { question_id: string; body: string }[] = unwrap(
+    await db().from("scratchpads").select("question_id, body").eq("attempt_id", attemptId),
+  );
+  return Object.fromEntries(rows.map((row) => [row.question_id, row.body]));
+}
+
+export async function saveScratch(member: Member, attempt: CandidateAttempt, questionId: string, body: string): Promise<void> {
+  unwrap(
+    await db()
+      .from("scratchpads")
+      .upsert(
+        {
+          user_id: member.user.id,
+          institution_id: member.institution.id,
+          attempt_id: attempt.id,
+          question_id: questionId,
+          body,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "attempt_id,question_id" },
+      ),
+  );
 }
 
 export type AnswerOp = {
