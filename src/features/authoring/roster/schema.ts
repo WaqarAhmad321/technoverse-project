@@ -16,7 +16,7 @@ export const candidateSchema = z.object({
     .string()
     .trim()
     .regex(CNIC, "CNIC must have 13 digits, such as 35202-1234567-3."),
-  section: z.string().trim().max(60, "Section names are at most 60 characters."),
+  section: z.string().trim().max(60, "Section names are at most 60 characters.").default(""),
   extra_time_pct: z.coerce
     .number({ message: "Extra time must be a whole number from 0 to 100." })
     .int("Extra time must be a whole number from 0 to 100.")
