@@ -2,7 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { notFound } from "next/navigation";
 import { z } from "zod";
-import { requireUser, type SessionUser } from "@/lib/auth";
+import { getUser, requireUser, type SessionUser } from "@/lib/auth";
 import { db, unwrap } from "@/lib/db";
 import type { Institution, Membership, Profile } from "@/lib/exam-types";
 
@@ -74,6 +74,17 @@ export async function requireMember(...roles: Role[]): Promise<Member> {
   if (!access.current) notFound();
   const { institution, roles: held } = access.current;
   if (roles.length > 0 && !roles.some((role) => held.includes(role))) notFound();
+  return { user: access.user, profile: access.profile, institution, roles: held };
+}
+
+// For route handlers, which answer with a status code instead of the not-found screen.
+export async function memberOrNull(...roles: Role[]): Promise<Member | null> {
+  const user = await getUser();
+  if (!user) return null;
+  const access = await loadAccess(user);
+  if (!access.current) return null;
+  const { institution, roles: held } = access.current;
+  if (roles.length > 0 && !roles.some((role) => held.includes(role))) return null;
   return { user: access.user, profile: access.profile, institution, roles: held };
 }
 

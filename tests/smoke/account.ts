@@ -22,11 +22,25 @@ function newAccount(): Account {
   };
 }
 
-async function signUp(page: Page, account: Account): Promise<void> {
+type AccountKind = "examiner" | "candidate";
+
+const KIND_LABELS: Record<AccountKind, string> = {
+  examiner: "Set and mark exams for my institution",
+  candidate: "Sit exams my institution gives me",
+};
+
+// Same rule as taggedEmail in src/lib/demo-accounts.ts: the seeded Ayesha of an examiner's world.
+function pairedCandidateEmail(examinerEmail: string): string {
+  const [local, domain] = examinerEmail.split("@");
+  return `${local}${local?.includes("+") ? "-" : "+"}ayesha@${domain}`;
+}
+
+async function signUp(page: Page, account: Account, kind: AccountKind = "examiner"): Promise<void> {
   await page.goto("/sign-up");
   await page.getByLabel("Your name").fill(account.name);
   await page.getByLabel("Email").fill(account.email);
   await page.getByLabel("Password").fill(account.password);
+  await page.getByLabel(KIND_LABELS[kind]).check();
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page).toHaveURL(/\/home$/, { timeout: SIGN_UP_WITH_SEED_MS });
 }
@@ -46,9 +60,52 @@ async function removeAccount(account: Account): Promise<void> {
   }
 }
 
-// A test that asks for `account` starts signed in as a brand-new person with fresh sample data.
-// The account and everything it owns are removed when the test ends.
-export const test = base.extend<{ account: Account }>({
+export type World = { examiner: Account; candidate: Account; candidatePage: Page };
+type WorldAccounts = { examiner: Account; candidate: Account };
+
+async function signIn(page: Page, account: Account): Promise<void> {
+  await page.goto("/login");
+  await page.getByLabel("Email").fill(account.email);
+  await page.getByLabel("Password").fill(account.password);
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page).toHaveURL(/\/home$/);
+}
+
+// A test that asks for `account` starts signed in as a brand-new examiner with a freshly seeded institution.
+// A test that asks for `world` gets an examiner on `page` and that institution's Ayesha on `candidatePage`.
+// The world's accounts are made once per worker, because seeding an institution is slow; tests that share
+// it must not depend on each other's changes. Every account is removed at the end.
+export const test = base.extend<{ account: Account; world: World }, { worldAccounts: WorldAccounts }>({
+  worldAccounts: [
+    async ({ browser }, runWorker, workerInfo) => {
+      const examiner = newAccount();
+      const candidate = { name: "Ayesha Khan", email: pairedCandidateEmail(examiner.email), password: randomUUID() };
+      const setupContext = await browser.newContext({ baseURL: workerInfo.project.use.baseURL });
+      try {
+        const setupPage = await setupContext.newPage();
+        await signUp(setupPage, examiner, "examiner");
+        await setupContext.clearCookies();
+        await signUp(setupPage, candidate, "candidate");
+        await setupContext.close();
+        await runWorker({ examiner, candidate });
+      } finally {
+        await removeAccount(candidate);
+        await removeAccount(examiner);
+      }
+    },
+    { scope: "worker" },
+  ],
+  world: async ({ page, browser, worldAccounts }, runTest) => {
+    const candidateContext = await browser.newContext();
+    try {
+      await signIn(page, worldAccounts.examiner);
+      const candidatePage = await candidateContext.newPage();
+      await signIn(candidatePage, worldAccounts.candidate);
+      await runTest({ ...worldAccounts, candidatePage });
+    } finally {
+      await candidateContext.close();
+    }
+  },
   account: async ({ page }, runTest) => {
     const account = newAccount();
     try {

@@ -10,6 +10,11 @@ export const navItems: NavItem[] = [
   { href: "/questions", label: "Question bank", audience: ["examiner"] },
   { href: "/roster", label: "Roster", audience: ["examiner"] },
   { href: "/disputes", label: "Disputes", audience: ["examiner"] },
+  { href: "/exams", label: "My exams", audience: ["candidate"] },
+  { href: "/results", label: "My results", audience: ["candidate"] },
+  { href: "/monitor", label: "Live monitor", audience: ["examiner", "institution_admin"] },
+  { href: "/admin/people", label: "People", audience: ["institution_admin"] },
+  { href: "/platform", label: "Institutions", audience: ["super_admin"] },
 ];
 
 export function navFor(audience: NavAudience[]): NavItem[] {

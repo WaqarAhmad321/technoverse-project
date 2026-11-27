@@ -2,3 +2,6 @@
 12:42 decided: exam data is scoped by institution_id, not user_id; user_id is only the creator, for cleanup
 12:58 shared: seeded world, 4 demo logins (DEMO_EMAIL +examiner/+candidate/+admin/+platform), sign-up asks examiner or candidate, nav items carry an audience
 13:12 shared: shadcn base classes now follow hack/design.md (pill buttons/tabs, rounded inputs, flat cards); use PageHeader from @/components/page-header
+13:50 decided: the exam workspace renders only in the browser (it reads answers queued on the phone); saves go through /api/attempts/[id]/answers with client_seq, higher wins
+13:50 shared: memberOrNull() in src/lib/access.ts for route handlers; smoke fixture `world` gives an examiner page plus that institution's Ayesha on candidatePage, accounts made once per worker
+13:50 note: the smoke test now takes about 2 minutes, mostly account setup against the remote database
