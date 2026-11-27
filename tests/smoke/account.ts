@@ -22,11 +22,25 @@ function newAccount(): Account {
   };
 }
 
-async function signUp(page: Page, account: Account): Promise<void> {
+type AccountKind = "examiner" | "candidate";
+
+const KIND_LABELS: Record<AccountKind, string> = {
+  examiner: "Set and mark exams for my institution",
+  candidate: "Sit exams my institution gives me",
+};
+
+// Same rule as taggedEmail in src/lib/demo-accounts.ts: the seeded Ayesha of an examiner's world.
+function pairedCandidateEmail(examinerEmail: string): string {
+  const [local, domain] = examinerEmail.split("@");
+  return `${local}${local?.includes("+") ? "-" : "+"}ayesha@${domain}`;
+}
+
+async function signUp(page: Page, account: Account, kind: AccountKind = "examiner"): Promise<void> {
   await page.goto("/sign-up");
   await page.getByLabel("Your name").fill(account.name);
   await page.getByLabel("Email").fill(account.email);
   await page.getByLabel("Password").fill(account.password);
+  await page.getByLabel(KIND_LABELS[kind]).check();
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page).toHaveURL(/\/home$/, { timeout: SIGN_UP_WITH_SEED_MS });
 }
@@ -46,9 +60,27 @@ async function removeAccount(account: Account): Promise<void> {
   }
 }
 
-// A test that asks for `account` starts signed in as a brand-new person with fresh sample data.
-// The account and everything it owns are removed when the test ends.
-export const test = base.extend<{ account: Account }>({
+export type World = { examiner: Account; candidate: Account; candidatePage: Page };
+
+// A test that asks for `account` starts signed in as a brand-new examiner with a freshly seeded institution.
+// A test that asks for `world` also gets that institution's Ayesha, signed in on `candidatePage`.
+// Every account and everything it owns are removed when the test ends.
+export const test = base.extend<{ account: Account; world: World }>({
+  world: async ({ page, browser }, runTest) => {
+    const examiner = newAccount();
+    const candidate = { name: "Ayesha Khan", email: pairedCandidateEmail(examiner.email), password: randomUUID() };
+    const candidateContext = await browser.newContext();
+    try {
+      await signUp(page, examiner, "examiner");
+      const candidatePage = await candidateContext.newPage();
+      await signUp(candidatePage, candidate, "candidate");
+      await runTest({ examiner, candidate, candidatePage });
+    } finally {
+      await candidateContext.close();
+      await removeAccount(candidate);
+      await removeAccount(examiner);
+    }
+  },
   account: async ({ page }, runTest) => {
     const account = newAccount();
     try {
