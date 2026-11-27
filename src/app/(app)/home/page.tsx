@@ -7,6 +7,8 @@ import { getAccess } from "@/lib/access";
 import { formatPkt } from "@/lib/format";
 import { AttentionList } from "@/components/attention-list";
 import { candidateAttention, controllerAttention, examinerAttention } from "@/lib/attention";
+import { CandidateChartsSection, ExaminerChartsSection, PlatformChartsSection, StaffChartsSection } from "@/components/charts/dashboard-charts";
+import { loadCandidateCharts, loadExaminerCharts, loadPlatformCharts, loadStaffCharts } from "@/lib/dashboard-data";
 import { loadCandidateSummary, loadStaffSummary } from "@/lib/home-data";
 
 export default async function HomePage() {
@@ -17,7 +19,9 @@ export default async function HomePage() {
   const isStaff = current?.roles.some((role) => role !== "candidate") ?? false;
   const isCandidate = current?.roles.includes("candidate") ?? false;
   const roles = current?.roles ?? [];
-  const [staff, candidate, attention] = await Promise.all([
+  const isExaminer = roles.includes("examiner");
+  const isOversight = roles.includes("institution_admin") || roles.includes("controller");
+  const [staff, candidate, attention, examinerCharts, candidateCharts, staffCharts, platformCharts] = await Promise.all([
     member && isStaff ? loadStaffSummary(member) : null,
     member && isCandidate ? loadCandidateSummary(member) : null,
     member
@@ -27,6 +31,10 @@ export default async function HomePage() {
           roles.includes("candidate") ? candidateAttention(member) : [],
         ]).then((lists) => lists.flat())
       : [],
+    member && isExaminer ? loadExaminerCharts(member) : null,
+    member && isCandidate ? loadCandidateCharts(member) : null,
+    member && isOversight ? loadStaffCharts(member) : null,
+    !current && access.profile.is_super_admin ? loadPlatformCharts() : null,
   ]);
 
   return (
@@ -104,6 +112,10 @@ export default async function HomePage() {
           )}
         </section>
       )}
+      {candidateCharts && <CandidateChartsSection data={candidateCharts} />}
+      {examinerCharts && <ExaminerChartsSection data={examinerCharts} />}
+      {staffCharts && <StaffChartsSection data={staffCharts} />}
+      {platformCharts && <PlatformChartsSection data={platformCharts} />}
     </div>
   );
 }
