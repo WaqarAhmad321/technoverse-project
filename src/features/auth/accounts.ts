@@ -27,6 +27,31 @@ export async function createAccount(account: NewAccount): Promise<CreateAccountR
   return "created";
 }
 
+const USERS_PAGE_SIZE = 1000;
+
+async function findUserIdByEmail(email: string): Promise<string | null> {
+  const { data, error } = await db().auth.admin.listUsers({ perPage: USERS_PAGE_SIZE });
+  if (error) {
+    console.error("Could not list accounts:", error.message);
+    return null;
+  }
+  const wanted = email.toLowerCase();
+  return data.users.find((user) => user.email?.toLowerCase() === wanted)?.id ?? null;
+}
+
+// Every laptop shares the demo accounts; one created with an older DEMO_PASSWORD is brought in line.
+export async function resetDemoPassword(email: string, password: string): Promise<boolean> {
+  const userId = await findUserIdByEmail(email);
+  if (!userId) return false;
+  const { error } = await db().auth.admin.updateUserById(userId, { password });
+  if (error) {
+    console.error("Could not reset the demo password:", error.message);
+    return false;
+  }
+  console.warn(`Demo account ${email} had an older password; it now uses DEMO_PASSWORD.`);
+  return true;
+}
+
 export async function startSession(email: string, password: string): Promise<StartSessionResult> {
   const supabase = await createSessionClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });

@@ -6,7 +6,7 @@ import { displayNameSchema } from "@/lib/profile";
 import { getEnv } from "@/lib/env";
 import { APP_HOME, site } from "@/lib/site";
 import { createSessionClient } from "@/lib/supabase/session";
-import { createAccount, startSession } from "./accounts";
+import { createAccount, resetDemoPassword, startSession } from "./accounts";
 
 const MIN_PASSWORD_LENGTH = 8;
 const MAX_PASSWORD_LENGTH = 72;
@@ -76,7 +76,8 @@ export async function signInAsDemo(): Promise<void> {
   let result = await startSession(demo.email, demo.password);
   if (result === "wrong-credentials") {
     const created = await createAccount(demo);
-    if (created !== "failed") {
+    const usable = created === "created" || (created === "email-taken" && (await resetDemoPassword(demo.email, demo.password)));
+    if (usable) {
       result = await startSession(demo.email, demo.password);
     }
   }
