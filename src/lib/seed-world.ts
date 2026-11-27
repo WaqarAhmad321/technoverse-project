@@ -115,6 +115,7 @@ const ROSTER: RosterEntry[] = [
 ];
 
 const SAT_PAST_EXAMS = ROSTER.length - 1;
+const SECTION_A_SIZE = 16;
 
 const WRITTEN_ANSWERS = [
   "Because of inertia. By Newton's first law a body keeps moving unless a force acts on it. When the bus brakes, our feet stop with the bus but the upper body keeps moving forward. The same happens when a rickshaw stops suddenly.",
@@ -228,6 +229,7 @@ export async function seedWorld(context: WorldContext): Promise<void> {
     email: index === 0 ? context.ayeshaEmail.toLowerCase() : index === 1 ? context.bilalEmail.toLowerCase() : emailFor(entry.name),
     cnic_masked: cnicFor(index),
     extra_time_pct: entry.extraTimePct ?? 0,
+    section: index < SECTION_A_SIZE ? "BS Physics · Section A" : "BS Physics · Section B",
   }));
   const questions = buildQuestions(context, nowMs);
   const questionByKey = new Map(questions.map((question) => [question.bankKey, question]));

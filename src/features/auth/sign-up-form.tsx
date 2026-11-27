@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signUp } from "./actions";
 
-export function SignUpForm() {
+export function SignUpForm({ defaultKind }: { defaultKind: "examiner" | "candidate" }) {
   const [state, formAction] = useActionState(signUp, null);
 
   return (
@@ -38,11 +38,11 @@ export function SignUpForm() {
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-2 text-base font-medium">What will you do here?</legend>
         <label className="flex min-h-11 items-center gap-3 text-base">
-          <input type="radio" name="kind" value="examiner" defaultChecked className="size-5 accent-primary" />
+          <input type="radio" name="kind" value="examiner" defaultChecked={defaultKind === "examiner"} className="size-5 accent-primary" />
           Set and mark exams for my institution
         </label>
         <label className="flex min-h-11 items-center gap-3 text-base">
-          <input type="radio" name="kind" value="candidate" className="size-5 accent-primary" />
+          <input type="radio" name="kind" value="candidate" defaultChecked={defaultKind === "candidate"} className="size-5 accent-primary" />
           Sit exams my institution gives me
         </label>
       </fieldset>

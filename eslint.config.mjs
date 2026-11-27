@@ -14,6 +14,9 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Helper agents keep their own copy of the project here, with its own build output.
     ".claude/worktrees/**",
+    // Browser test output and throwaway scripts; never shipped.
+    "test-results/**",
+    "playwright-report/**",
   ]),
 ]);
 

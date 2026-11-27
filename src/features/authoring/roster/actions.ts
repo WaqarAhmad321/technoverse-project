@@ -23,6 +23,7 @@ export async function addCandidate(_previous: CandidateFormState, formData: Form
     email: input.email,
     cnic_masked: maskCnic(input.cnic),
     extra_time_pct: input.extra_time_pct,
+    section: input.section,
   });
   if (error?.code === UNIQUE_VIOLATION) return { status: "error", message: `Roll number ${input.roll_number} is already on the roster.` };
   if (error) throw new Error(`Database request failed: ${error.message}`);

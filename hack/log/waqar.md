@@ -20,3 +20,4 @@
 17:10 shared + authoring screens: back links on all authoring detail pages, pagers on question bank and roster, StatusDot on the exam list, ThemedSelect handles options without a value, light accent is teal. umar: tests pick dropdown options by clicking now (no selectOption)
 17:35 decided: exam page has a sticky toolbar (timer, rough work, display menu, finish); rough work is a right-side drawer with Notes and Sketch tabs, stored as JSON in scratchpads.body
 17:48 shared: approvals table + src/lib/approvals.ts (approvalGate, isApproved, institutionCanPublish) gate publishExam and publishResults when the institution has a controller; new institutions start pending until the platform admin approves; smoke fixtures approve test institutions
+18:10 shared: candidates.section (class/section) with enroll-by-section on the exam's Candidates tab; roster shows Joined / Not joined yet and a join link (/sign-up?as=candidate)

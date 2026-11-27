@@ -38,6 +38,16 @@ export async function enrollAll(examId: string): Promise<void> {
   await enroll(editable.member, editable.exam, all.map((candidate) => candidate.id));
 }
 
+// Exams go to classes: one click enrolls everyone in a section, and only them.
+export async function enrollSection(examId: string, section: string): Promise<void> {
+  const editable = await editableExam(examId);
+  if (!editable || section.length === 0) return;
+  const inSection: { id: string }[] = unwrap(
+    await db().from("candidates").select("id").eq("institution_id", editable.member.institution.id).eq("section", section),
+  );
+  await enroll(editable.member, editable.exam, inSection.map((candidate) => candidate.id));
+}
+
 export async function enrollOne(examId: string, candidateId: string): Promise<void> {
   const editable = await editableExam(examId);
   if (!editable) return;

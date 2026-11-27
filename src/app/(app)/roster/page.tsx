@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
+import { StatusDot } from "@/components/status-dot";
+import { JoinInstructions } from "@/features/authoring/roster/join-instructions";
 import { Pagination } from "@/components/pagination";
 import { paginate } from "@/lib/pagination";
 
@@ -24,6 +26,7 @@ export default async function RosterPage({ searchParams }: { searchParams: Promi
           <Link href="/roster/import">Import candidates</Link>
         </Button>
       </PageHeader>
+      <JoinInstructions />
       <details className="group rounded-3xl bg-card p-4 md:p-6">
         <summary className="flex min-h-11 cursor-pointer list-none items-center text-xl font-medium">
           Add candidate
@@ -52,7 +55,13 @@ export default async function RosterPage({ searchParams }: { searchParams: Promi
               >
                 <span className="flex min-w-0 flex-col">
                   <span className="text-base">{candidate.full_name}</span>
-                  <span className="truncate text-sm text-muted-foreground">{candidate.email}</span>
+                  <span className="truncate text-sm text-muted-foreground">
+                    {candidate.email}
+                    {candidate.section ? ` · ${candidate.section}` : ""}
+                  </span>
+                  <StatusDot tone={candidate.hasJoined ? "ready" : "draft"} className="text-muted-foreground">
+                    {candidate.hasJoined ? "Joined" : "Not joined yet"}
+                  </StatusDot>
                 </span>
                 <span className="text-sm text-muted-foreground md:text-base md:text-foreground">
                   <span className="md:hidden">Roll </span>
