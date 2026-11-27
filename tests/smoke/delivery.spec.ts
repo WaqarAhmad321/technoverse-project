@@ -30,7 +30,7 @@ test("a candidate sits an exam: answers survive a reload and an outage, and one 
   await expect(page.getByText("All answers saved")).toBeVisible({ timeout: SYNC_AFTER_OUTAGE_MS });
 
   await page.getByRole("button", { name: /^Question 5,/ }).click();
-  await page.getByRole("button", { name: "Finish exam" }).click();
+  await page.getByRole("button", { name: "Finish exam" }).first().click();
   await page.getByRole("button", { name: "Submit exam" }).dblclick();
   await expect(page).toHaveURL(/\/receipt$/, { timeout: START_EXAM_MS });
   const receiptCode = await page.getByText(/^IMT-[A-Z0-9]{6}$/).textContent();
