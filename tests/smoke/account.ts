@@ -5,7 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 export type Account = { name: string; email: string; password: string };
 
 // Someone who sets exams gets a seeded institution at sign-up: about 1,300 rows.
-const SIGN_UP_WITH_SEED_MS = 20_000;
+const SIGN_UP_WITH_SEED_MS = 45_000;
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -75,8 +75,31 @@ async function signIn(page: Page, account: Account): Promise<void> {
 // A test that asks for `world` gets an examiner on `page` and that institution's Ayesha on `candidatePage`.
 // The world's accounts are made once per worker, because seeding an institution is slow; tests that share
 // it must not depend on each other's changes. Every account is removed at the end.
-// A test that asks for `accountCandidate` also gets the `account` institution's Ayesha, signed in on her own page.
-export const test = base.extend<{ account: Account; world: World; accountCandidate: Page }, { worldAccounts: WorldAccounts }>({
+// A test that asks for `examiner` starts signed in as an examiner whose seeded institution is shared by every
+// such test in the worker: one slow sign-up instead of one per test. Those tests must not depend on each other.
+// `examinerCandidate` is that institution's Ayesha, signed in on her own page.
+export const test = base.extend<
+  { account: Account; world: World; examiner: Account; examinerCandidate: Page },
+  { worldAccounts: WorldAccounts; sharedExaminer: Account }
+>({
+  sharedExaminer: [
+    async ({ browser }, runWorker, workerInfo) => {
+      const examiner = newAccount();
+      const setupContext = await browser.newContext({ baseURL: workerInfo.project.use.baseURL });
+      try {
+        await signUp(await setupContext.newPage(), examiner, "examiner");
+        await setupContext.close();
+        await runWorker(examiner);
+      } finally {
+        await removeAccount(examiner);
+      }
+    },
+    { scope: "worker" },
+  ],
+  examiner: async ({ page, sharedExaminer }, runTest) => {
+    await signIn(page, sharedExaminer);
+    await runTest(sharedExaminer);
+  },
   worldAccounts: [
     async ({ browser }, runWorker, workerInfo) => {
       const examiner = newAccount();
@@ -107,8 +130,8 @@ export const test = base.extend<{ account: Account; world: World; accountCandida
       await candidateContext.close();
     }
   },
-  accountCandidate: async ({ account, browser }, runTest, testInfo) => {
-    const candidate = { name: "Ayesha Khan", email: pairedCandidateEmail(account.email), password: randomUUID() };
+  examinerCandidate: async ({ examiner, browser }, runTest, testInfo) => {
+    const candidate = { name: "Ayesha Khan", email: pairedCandidateEmail(examiner.email), password: randomUUID() };
     const context = await browser.newContext({ baseURL: testInfo.project.use.baseURL });
     try {
       const candidatePage = await context.newPage();

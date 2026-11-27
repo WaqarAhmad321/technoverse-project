@@ -1,7 +1,7 @@
 import { expect, test } from "./account";
 
-test("an examiner adds a question to the bank and edits it", async ({ page, account }) => {
-  await expect(page.getByRole("heading", { level: 1 })).toContainText(account.name);
+test("an examiner adds a question to the bank and edits it", async ({ page, examiner }) => {
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(examiner.name);
   await page.goto("/questions");
   await expect(page.getByRole("heading", { name: "Question bank" })).toBeVisible();
   await page.getByRole("link", { name: "Add question" }).first().click();
@@ -38,9 +38,9 @@ test("an examiner adds a question to the bank and edits it", async ({ page, acco
   await expect(page.getByText("Saved as version 2.")).toBeVisible();
 });
 
-test("an examiner creates an exam and builds its paper from the bank", async ({ page, account }) => {
+test("an examiner creates an exam and builds its paper from the bank", async ({ page, examiner }) => {
   test.setTimeout(90_000);
-  await expect(page.getByRole("heading", { level: 1 })).toContainText(account.name);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(examiner.name);
   await page.goto("/manage/new");
   await page.getByLabel("Title").fill("Physics Final");
   await page.getByLabel("Duration in minutes").fill("60");
@@ -69,9 +69,9 @@ test("an examiner creates an exam and builds its paper from the bank", async ({ 
   await expect(page.getByRole("link", { name: /Physics Final/ })).toContainText("Draft");
 });
 
-test("an examiner adds a candidate to the roster and enrolls them", async ({ page, account }) => {
+test("an examiner adds a candidate to the roster and enrolls them", async ({ page, examiner }) => {
   test.setTimeout(90_000);
-  await expect(page.getByRole("heading", { level: 1 })).toContainText(account.name);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(examiner.name);
   await page.goto("/roster");
   await page.getByText("Add candidate").first().click();
 
@@ -100,7 +100,7 @@ test("an examiner adds a candidate to the roster and enrolls them", async ({ pag
   await expect(page.getByRole("heading", { name: "32 enrolled" })).toBeVisible({ timeout: 15_000 });
 });
 
-test("the publish checklist blocks a wrong total, then the candidate sees the published exam", async ({ page, accountCandidate }) => {
+test("the publish checklist blocks a wrong total, then the candidate sees the published exam", async ({ page, examinerCandidate }) => {
   test.setTimeout(90_000);
   await page.goto("/manage");
   await page.getByRole("link", { name: /Physics Midterm/ }).click();
@@ -122,12 +122,12 @@ test("the publish checklist blocks a wrong total, then the candidate sees the pu
   await expect(page.getByRole("heading", { name: "Published" })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText(/^Open now ·/)).toBeVisible();
 
-  await accountCandidate.goto("/exams");
-  await expect(accountCandidate.getByRole("region", { name: "Open now" })).toContainText("Physics Midterm");
+  await examinerCandidate.goto("/exams");
+  await expect(examinerCandidate.getByRole("region", { name: "Open now" })).toContainText("Physics Midterm");
 });
 
-test("opening a closed exam marks every objective answer, and marking again changes nothing", async ({ page, account }) => {
-  await expect(page.getByRole("heading", { level: 1 })).toContainText(account.name);
+test("opening a closed exam marks every objective answer, and marking again changes nothing", async ({ page, examiner }) => {
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(examiner.name);
   await page.goto("/manage");
   await page.getByRole("link", { name: /Physics Quiz 1/ }).click();
   await page.getByRole("link", { name: "Open marking" }).click();
@@ -141,8 +141,8 @@ test("opening a closed exam marks every objective answer, and marking again chan
   expect(await attempts.innerText()).toBe(before);
 });
 
-test("an examiner marks a written answer and cannot go over the question's marks", async ({ page, account }) => {
-  await expect(page.getByRole("heading", { level: 1 })).toContainText(account.name);
+test("an examiner marks a written answer and cannot go over the question's marks", async ({ page, examiner }) => {
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(examiner.name);
   await page.goto("/manage");
   await page.getByRole("link", { name: /Physics Quiz 1/ }).click();
   await page.getByRole("link", { name: "Open marking" }).click();
