@@ -71,12 +71,31 @@ async function signIn(page: Page, account: Account): Promise<void> {
   await expect(page).toHaveURL(/\/home$/);
 }
 
-// A test that asks for `account` starts signed in as a brand-new examiner with a freshly seeded institution.
+// A test that asks for `account` starts signed in as an examiner of a freshly seeded institution, shared by
+// the tests on this worker: add to it freely, but do not rely on another test's changes.
 // A test that asks for `world` gets an examiner on `page` and that institution's Ayesha on `candidatePage`.
 // The world's accounts are made once per worker, because seeding an institution is slow; tests that share
 // it must not depend on each other's changes. Every account is removed at the end.
 // A test that asks for `accountCandidate` also gets the `account` institution's Ayesha, signed in on her own page.
-export const test = base.extend<{ account: Account; world: World; accountCandidate: Page }, { worldAccounts: WorldAccounts }>({
+export const test = base.extend<
+  { account: Account; world: World; accountCandidate: Page },
+  { worldAccounts: WorldAccounts; examinerAccount: Account }
+>({
+  // One seeded examiner per worker: seeding an institution is the slowest step of the whole check.
+  examinerAccount: [
+    async ({ browser }, runWorker, workerInfo) => {
+      const account = newAccount();
+      const setupContext = await browser.newContext({ baseURL: workerInfo.project.use.baseURL });
+      try {
+        await signUp(await setupContext.newPage(), account);
+        await setupContext.close();
+        await runWorker(account);
+      } finally {
+        await removeAccount(account);
+      }
+    },
+    { scope: "worker" },
+  ],
   worldAccounts: [
     async ({ browser }, runWorker, workerInfo) => {
       const examiner = newAccount();
@@ -119,14 +138,9 @@ export const test = base.extend<{ account: Account; world: World; accountCandida
       await removeAccount(candidate);
     }
   },
-  account: async ({ page }, runTest) => {
-    const account = newAccount();
-    try {
-      await signUp(page, account);
-      await runTest(account);
-    } finally {
-      await removeAccount(account);
-    }
+  account: async ({ page, examinerAccount }, runTest) => {
+    await signIn(page, examinerAccount);
+    await runTest(examinerAccount);
   },
 });
 
