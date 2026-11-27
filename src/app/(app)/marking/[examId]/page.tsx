@@ -1,4 +1,8 @@
+import { ClipboardCheck } from "lucide-react";
 import { Suspense } from "react";
+import { Pagination } from "@/components/pagination";
+import { StatusDot } from "@/components/status-dot";
+import { paginate } from "@/lib/pagination";
 import { PageHeader } from "@/components/page-header";
 import type { Member } from "@/lib/access";
 import { AiOpinion, AiOpinionLoading } from "@/features/authoring/ai/ai-opinion";
@@ -23,9 +27,11 @@ import { WrittenForm } from "@/features/authoring/marking/written-form";
 import { formatPakistanTime, plural } from "@/features/authoring/format";
 import { firstLine } from "@/features/authoring/questions/schema";
 
-export default async function MarkingPage({ params }: { params: Promise<{ examId: string }> }) {
+type Search = { page?: string; qpage?: string };
+
+export default async function MarkingPage({ params, searchParams }: { params: Promise<{ examId: string }>; searchParams: Promise<Search> }) {
   const member = await requireMember("examiner", "institution_admin");
-  const { examId } = await params;
+  const [{ examId }, search] = await Promise.all([params, searchParams]);
   const exam = await getExam(member, examId);
   const attempts = await listFinishedAttempts(member, exam.id);
   // Opening a closed exam marks its objective answers, so the examiner never starts from a blank sheet.
@@ -51,7 +57,7 @@ export default async function MarkingPage({ params }: { params: Promise<{ examId
       <PageHeader back={{ href: `/manage/${exam.id}`, label: exam.title }} title={`Marking: ${exam.title}`} description={`${plural(attempts.length, "submitted attempt")}.`}>
         <form action={markObjectiveAnswers.bind(null, exam.id)}>
           <SubmitButton size="lg" variant="outline">
-            Mark objective answers
+            <ClipboardCheck aria-hidden /> Mark objective answers
           </SubmitButton>
         </form>
       </PageHeader>
@@ -87,8 +93,8 @@ export default async function MarkingPage({ params }: { params: Promise<{ examId
       ) : (
         <>
           {summary && <SummarySection summary={summary} maxTotal={exam.total_marks} />}
-          <AnalyticsSection rows={doctor.analytics} />
-          <ResultsTable scores={scores} />
+          <AnalyticsSection examId={exam.id} rows={doctor.analytics} search={search} />
+          <ResultsTable examId={exam.id} scores={scores} search={search} />
         </>
       )}
     </div>
@@ -147,7 +153,9 @@ function KeyDoctorSection({ examId, doctor }: { examId: string; doctor: KeyDocto
         Key check
       </h2>
       {doctor.open.length === 0 ? (
-        <p className="text-base text-muted-foreground">No answer key looks wrong.</p>
+        <StatusDot tone="done" className="text-base text-muted-foreground">
+          No answer key looks wrong.
+        </StatusDot>
       ) : (
         <ul aria-label="Flagged questions" className="flex flex-col gap-3">
           {doctor.open.map((flag) => (
@@ -187,16 +195,16 @@ function SummarySection({ summary, maxTotal }: { summary: ExamSummary; maxTotal:
       </h2>
       <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {stats.map(([label, value]) => (
-          <div key={label} className="flex flex-col">
+          <div key={label} className="flex flex-col rounded-2xl bg-muted p-4">
             <dt className="text-sm text-muted-foreground">{label}</dt>
             <dd className="text-xl font-medium tabular-nums">{value}</dd>
           </div>
         ))}
       </dl>
-      <div aria-label="Score spread" className="flex h-24 items-end gap-2">
+      <div aria-label="Score spread" className="flex h-32 items-stretch gap-2">
         {summary.buckets.map((count, index) => (
-          <div key={index} className="flex flex-1 flex-col items-center gap-1">
-            <div className="w-full rounded-t-md bg-primary/70" style={{ height: `${(count / tallest) * PERCENT}%` }} />
+          <div key={index} className="flex flex-1 flex-col items-center justify-end gap-1">
+            <div className="min-h-1 w-full rounded-t-md bg-primary/70" style={{ height: `calc(${(count / tallest) * PERCENT}% - 1.25rem)` }} />
             <span className="text-xs text-muted-foreground tabular-nums">{index * 20}–{(index + 1) * 20}%</span>
           </div>
         ))}
@@ -205,10 +213,20 @@ function SummarySection({ summary, maxTotal }: { summary: ExamSummary; maxTotal:
   );
 }
 
-function ResultsTable({ scores }: { scores: ScoreRow[] }) {
+function pageParams(search: Search, keep: keyof Search): Record<string, string> {
+  const value = search[keep];
+  return value ? { [keep]: value } : {};
+}
+
+function ResultsTable({ examId, scores, search }: { examId: string; scores: ScoreRow[]; search: Search }) {
+  const shown = paginate(scores, search.page);
   return (
-    <ul aria-label="Attempts" className="flex flex-col rounded-3xl bg-card p-2 md:p-4">
-      {scores.map((score) => (
+    <section aria-labelledby="results-heading" className="rounded-3xl bg-card p-2 md:p-4">
+      <h2 id="results-heading" className="px-3 pt-2 pb-3 text-xl font-medium">
+        Results by candidate
+      </h2>
+    <ul aria-label="Attempts" className="flex flex-col">
+      {shown.rows.map((score) => (
         <li key={score.attempt_id} className="flex min-h-14 items-center justify-between gap-4 border-b border-border px-3 last:border-0">
           <span className="flex min-w-0 flex-col">
             <span className="text-base">{score.name}</span>
@@ -220,6 +238,8 @@ function ResultsTable({ scores }: { scores: ScoreRow[] }) {
         </li>
       ))}
     </ul>
+    <Pagination page={shown} basePath={`/marking/${examId}`} params={pageParams(search, "qpage")} noun="attempts" />
+    </section>
   );
 }
 
@@ -227,15 +247,16 @@ function pct(share: number): string {
   return `${Math.round(share * PERCENT)}%`;
 }
 
-function AnalyticsSection({ rows }: { rows: AnalyticsRow[] }) {
+function AnalyticsSection({ examId, rows, search }: { examId: string; rows: AnalyticsRow[]; search: Search }) {
   if (rows.length === 0) return null;
+  const shown = paginate(rows, search.qpage);
   return (
     <section aria-labelledby="analytics-heading" className="flex flex-col gap-4 rounded-3xl bg-card p-4 md:p-6">
       <h2 id="analytics-heading" className="text-xl font-medium">
         How each question behaved
       </h2>
       <ul aria-label="Question analytics" className="flex flex-col">
-        {rows.map((row) => (
+        {shown.rows.map((row) => (
           <li key={row.question_id} className="flex flex-col gap-2 border-b border-border py-3 last:border-0">
             <p className="text-base">
               <span className="font-medium">Q{row.position}</span> {firstLine(row.body)}
@@ -258,6 +279,7 @@ function AnalyticsSection({ rows }: { rows: AnalyticsRow[] }) {
           </li>
         ))}
       </ul>
+      <Pagination page={shown} basePath={`/marking/${examId}`} params={pageParams(search, "page")} pageParam="qpage" noun="questions" />
     </section>
   );
 }
