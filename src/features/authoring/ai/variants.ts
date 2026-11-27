@@ -30,7 +30,7 @@ const WRITER = `You write alternative versions of one exam question for a Pakist
 Every version must test exactly the same concept and skill at the same difficulty, with the same number of options and the same number of correct options.
 Change the situation, the names and the numbers; set it in everyday Pakistani life where it fits (cities, transport, cricket, load-shedding, bazaars).
 Wrong options come from the mistakes students really make. Each version stands alone and never mentions the original.
-correct lists the letters of the correct options (a, b, c, ...). Work out every answer carefully before you write it.`;
+Write option texts without letters in front; correct lists the letters of the correct options (a, b, c, ...) by their order. Work out every answer carefully before you write it.`;
 
 const SOLVER = `You are sitting an exam. Solve the question carefully and return the letters of every correct option, and nothing you are unsure of.`;
 
@@ -88,11 +88,16 @@ function isWellFormed(draft: Draft, question: Question): boolean {
   return draft.body.trim().length > 0 && correctIsValid && countMatches && singleHasOne;
 }
 
+// The model sometimes writes "a) 500 N"; the letter is added by the screen.
+function withoutLetter(text: string): string {
+  return text.trim().replace(/^[a-h][).:]\s+/i, "");
+}
+
 function toVariant(draft: Draft, question: Question, solves: AnswerKey[], index: number): QuestionVariant {
   return {
     key: `v${Date.now().toString(36)}${index}`,
     body: draft.body.trim(),
-    options: draft.options.map((text, optionIndex) => ({ id: OPTION_IDS[optionIndex] ?? "a", text: text.trim() })),
+    options: draft.options.map((text, optionIndex) => ({ id: OPTION_IDS[optionIndex] ?? "a", text: withoutLetter(text) })),
     answer_key: [...draft.correct].sort(),
     status: "proposed",
     source_version: question.version,
