@@ -1,4 +1,6 @@
+import { Suspense } from "react";
 import { PageHeader } from "@/components/page-header";
+import { TableSkeleton } from "@/components/skeletons";
 import { EmptyState } from "@/components/states";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { loadAuditRows } from "@/features/people/audit-data";
@@ -23,41 +25,51 @@ function describe(action: string, payload: Record<string, unknown>): string {
   return `${label}${detail}`;
 }
 
+type Member = Awaited<ReturnType<typeof requireMember>>;
+
+async function AuditTable({ member, requestedPage }: { member: Member; requestedPage: string | string[] | undefined }) {
+  const rows = await loadAuditRows(member);
+  const shown = paginate(rows, requestedPage);
+  if (rows.length === 0) {
+    return <EmptyState message="Nothing recorded yet. Publishing an exam, fixing a key or changing a role adds an entry here." />;
+  }
+  return (
+    <div className="overflow-x-auto rounded-3xl bg-card p-2">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>When</TableHead>
+            <TableHead>Who</TableHead>
+            <TableHead>What</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {shown.rows.map(({ event, actorName }) => (
+            <TableRow key={event.id}>
+              <TableCell>{formatPkt(event.created_at)}</TableCell>
+              <TableCell>{actorName}</TableCell>
+              <TableCell className="whitespace-normal">{describe(event.action, event.payload)}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      <Pagination page={shown} basePath="/admin/audit" noun="events" />
+    </div>
+  );
+}
+
 export default async function AuditPage({ searchParams }: { searchParams: Promise<{ page?: string | string[] }> }) {
   const member = await requireMember("institution_admin", "controller", "observer");
-  const [rows, { page: requestedPage }] = await Promise.all([loadAuditRows(member), searchParams]);
-  const shown = paginate(rows, requestedPage);
+  const { page: requestedPage } = await searchParams;
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title="Audit log" description="Every powerful action, in order. Each entry is chained to the one before, so a changed entry shows up.">
         <VerifyChainButton />
       </PageHeader>
-      {rows.length === 0 ? (
-        <EmptyState message="Nothing recorded yet. Publishing an exam, fixing a key or changing a role adds an entry here." />
-      ) : (
-        <div className="overflow-x-auto rounded-3xl bg-card p-2">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>When</TableHead>
-                <TableHead>Who</TableHead>
-                <TableHead>What</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {shown.rows.map(({ event, actorName }) => (
-                <TableRow key={event.id}>
-                  <TableCell>{formatPkt(event.created_at)}</TableCell>
-                  <TableCell>{actorName}</TableCell>
-                  <TableCell className="whitespace-normal">{describe(event.action, event.payload)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          <Pagination page={shown} basePath="/admin/audit" noun="events" />
-        </div>
-      )}
+      <Suspense key={String(requestedPage ?? "1")} fallback={<TableSkeleton rows={10} columns={3} />}>
+        <AuditTable member={member} requestedPage={requestedPage} />
+      </Suspense>
     </div>
   );
 }

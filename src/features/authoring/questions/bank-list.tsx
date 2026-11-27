@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { plural, selectClass } from "../format";
 import type { BankFilters, BankRow } from "./data";
 import { DIFFICULTIES, DIFFICULTY_LABEL, KINDS, KIND_LABEL, firstLine } from "./schema";
+import { ThemedSelect } from "@/components/themed-select";
 
 export function BankFiltersForm({ filters, topics }: { filters: BankFilters; topics: string[] }) {
   return (
@@ -15,28 +16,28 @@ export function BankFiltersForm({ filters, topics }: { filters: BankFilters; top
         <Search className="pointer-events-none absolute top-3 left-4 size-5 text-muted-foreground" aria-hidden />
         <Input name="q" defaultValue={filters.q ?? ""} placeholder="Search by text" className="h-11 rounded-full pl-11" />
       </label>
-      <select name="topic" defaultValue={filters.topic ?? ""} className={selectClass} aria-label="Topic">
+      <ThemedSelect name="topic" defaultValue={filters.topic ?? ""} className={selectClass} aria-label="Topic">
         <option value="">All topics</option>
         {topics.map((topic) => (
           <option key={topic}>{topic}</option>
         ))}
-      </select>
-      <select name="difficulty" defaultValue={filters.difficulty ?? ""} className={selectClass} aria-label="Difficulty">
+      </ThemedSelect>
+      <ThemedSelect name="difficulty" defaultValue={filters.difficulty ?? ""} className={selectClass} aria-label="Difficulty">
         <option value="">Any difficulty</option>
         {DIFFICULTIES.map((value) => (
           <option key={value} value={value}>
             {DIFFICULTY_LABEL[value]}
           </option>
         ))}
-      </select>
-      <select name="kind" defaultValue={filters.kind ?? ""} className={selectClass} aria-label="Kind">
+      </ThemedSelect>
+      <ThemedSelect name="kind" defaultValue={filters.kind ?? ""} className={selectClass} aria-label="Kind">
         <option value="">Any kind</option>
         {KINDS.map((value) => (
           <option key={value} value={value}>
             {KIND_LABEL[value]}
           </option>
         ))}
-      </select>
+      </ThemedSelect>
       <Button type="submit" variant="secondary" size="lg">
         Filter
       </Button>

@@ -23,6 +23,7 @@ import {
   PARTIAL_FORMULA,
   questionSchema,
 } from "./schema";
+import { ThemedSelect } from "@/components/themed-select";
 
 type Option = { key: number; text: string; correct: boolean };
 
@@ -87,7 +88,7 @@ export function QuestionForm({ question, topics }: { question: Question | null; 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="kind">Kind</Label>
-          <select
+          <ThemedSelect
             id="kind"
             name="kind"
             className={selectClass}
@@ -99,7 +100,7 @@ export function QuestionForm({ question, topics }: { question: Question | null; 
                 {KIND_LABEL[value]}
               </option>
             ))}
-          </select>
+          </ThemedSelect>
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="marks">Marks</Label>
@@ -125,13 +126,13 @@ export function QuestionForm({ question, topics }: { question: Question | null; 
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="difficulty">Difficulty</Label>
-          <select id="difficulty" name="difficulty" className={selectClass} defaultValue={question?.difficulty ?? "medium"}>
+          <ThemedSelect id="difficulty" name="difficulty" className={selectClass} defaultValue={question?.difficulty ?? "medium"}>
             {DIFFICULTIES.map((value) => (
               <option key={value} value={value}>
                 {DIFFICULTY_LABEL[value]}
               </option>
             ))}
-          </select>
+          </ThemedSelect>
         </div>
       </div>
 
