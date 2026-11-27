@@ -155,7 +155,7 @@ test("an examiner marks a written answer and cannot go over the question's marks
   await page.getByLabel(/^Marks out of/).fill("7");
   await page.getByRole("button", { name: "Save and next" }).click();
   await expect(page.getByText("This question is worth 5 marks.")).toBeVisible();
-  await expect(page.getByLabel("AI second marker")).toContainText("AI second marker: 2.5 of 5.");
+  await expect(page.getByLabel("AI second marker")).toContainText("2.5 of 5 marks.");
   await page.getByLabel(/^Marks out of/).fill("4");
   await page.getByRole("button", { name: "Save and next" }).click();
   await expect(page.getByText("Marking in progress (1 of 30 written answers)")).toBeVisible();
