@@ -268,6 +268,7 @@ Users/profiles (role, accommodation) · questions (versioned) · exams (settings
 4. PDF library (server-side) and QR signing approach
 5. Live updates: timed refresh vs realtime (2G-friendly polling preferred)
 6. Bilingual (Urdu) support in or out
+7. **Governance model:** super admin → institutions → real Pakistani exam roles (Controller of Examinations, Secrecy/Conduct/Results deputies, HoD, setter, moderator, examiner, head examiner, invigilator, UMC and grievance committees, observer) with separation of duties, blind marking, an examiner transparency dashboard and candidate reporting. See `governance-roles-transparency.md`
 
 ## F5. What judges will try (rehearse)
 Change the device clock · refresh / close the tab · go offline mid-exam · double-click submit · edit IDs in the URL · open an exam early · inspect network responses for keys · edit a question during an active attempt · enter marks above max · publish with ungraded answers or flagged keys · import a bad CSV · scan the QR · use the sandbox · let the timer expire with the tab closed · ask "is a tab switch proof of cheating?" · **ask "what if the AI is wrong?"** (answer: it only proposes, a human decides, and everything is audited) · **ask "does it work without AI?"** (answer: yes, every required feature).
