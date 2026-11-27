@@ -128,20 +128,20 @@ export function VoiceControls(props: VoiceControlsProps) {
   useEffect(() => () => recognition.current?.stop(), []);
 
   return (
-    <div className="mt-4 flex flex-col gap-2">
-      <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="outline" size="lg" onClick={readAloud} aria-keyshortcuts="Alt+R" data-voice="read">
-          <Volume2 aria-hidden className="size-5" />
+    <div className="mt-3 flex flex-col gap-1">
+      <div className="flex flex-wrap gap-1">
+        <Button type="button" variant="ghost" className="h-9 px-3 text-sm text-muted-foreground hover:text-foreground" onClick={readAloud} aria-keyshortcuts="Alt+R" data-voice="read">
+          <Volume2 aria-hidden className="size-4" />
           Read aloud
         </Button>
         {canListen && (
-          <Button type="button" variant={isListening ? "secondary" : "outline"} size="lg" onClick={toggleListening} aria-pressed={isListening} aria-keyshortcuts="Alt+V" data-voice="listen">
-            {isListening ? <MicOff aria-hidden className="size-5" /> : <Mic aria-hidden className="size-5" />}
+          <Button type="button" variant={isListening ? "secondary" : "ghost"} className="h-9 px-3 text-sm text-muted-foreground hover:text-foreground" onClick={toggleListening} aria-pressed={isListening} aria-keyshortcuts="Alt+V" data-voice="listen">
+            {isListening ? <MicOff aria-hidden className="size-4" /> : <Mic aria-hidden className="size-4" />}
             {isListening ? "Stop listening" : kind === "written" ? "Dictate answer" : "Answer by voice"}
           </Button>
         )}
       </div>
-      <p role="status" aria-live="assertive" className="min-h-6 text-sm text-muted-foreground">
+      <p role="status" aria-live="assertive" className="min-h-0 text-sm text-muted-foreground empty:hidden">
         {status}
       </p>
     </div>
