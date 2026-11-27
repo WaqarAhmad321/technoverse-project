@@ -1,4 +1,8 @@
+import { Suspense } from "react";
 import { PageHeader } from "@/components/page-header";
+import type { Member } from "@/lib/access";
+import { AiOpinion, AiOpinionLoading } from "@/features/authoring/ai/ai-opinion";
+import { listSecondLooks, type SecondLook } from "@/features/authoring/ai/data";
 import { EmptyState } from "@/components/states";
 import { SubmitButton } from "@/components/submit-button";
 import { requireMember } from "@/lib/access";
@@ -31,7 +35,14 @@ export default async function MarkingPage({ params }: { params: Promise<{ examId
     loadKeyDoctor(member, exam.id, attempts),
   ]);
   const flagged = doctor.open.length;
-  const scores = await computeScores(member, exam, attempts);
+  const [scores, secondLooks] = await Promise.all([
+    computeScores(member, exam, attempts),
+    listSecondLooks(
+      member,
+      attempts.map((attempt) => attempt.id),
+      new Map(attempts.map((attempt) => [attempt.id, attempt.candidate?.roll_number ?? ""])),
+    ),
+  ]);
   const summary = summarize(scores, exam.total_marks);
   const unmarked = queue.total - queue.marked;
 
@@ -70,7 +81,7 @@ export default async function MarkingPage({ params }: { params: Promise<{ examId
           />
           </div>
         ))}
-      {queue.total > 0 && <WrittenQueueSection examId={exam.id} queue={queue} />}
+      {queue.total > 0 && <WrittenQueueSection member={member} examId={exam.id} queue={queue} secondLooks={secondLooks} />}
       {attempts.length === 0 ? (
         <EmptyState message="Nobody has submitted this exam yet. Submitted attempts appear here for marking." />
       ) : (
@@ -84,7 +95,7 @@ export default async function MarkingPage({ params }: { params: Promise<{ examId
   );
 }
 
-function WrittenQueueSection({ examId, queue }: { examId: string; queue: WrittenQueue }) {
+function WrittenQueueSection({ member, examId, queue, secondLooks }: { member: Member; examId: string; queue: WrittenQueue; secondLooks: SecondLook[] }) {
   const { next } = queue;
   return (
     <section aria-labelledby="written-heading" className="flex flex-col gap-4 rounded-3xl bg-card p-4 md:p-6">
@@ -102,7 +113,27 @@ function WrittenQueueSection({ examId, queue }: { examId: string; queue: Written
           <p className="text-base font-medium">{next.body}</p>
           {next.rubric && <p className="rounded-xl bg-muted px-4 py-3 text-base">Rubric: {next.rubric}</p>}
           <blockquote className="whitespace-pre-line border-l-2 border-border pl-4 text-base">{next.answerText || "No answer given."}</blockquote>
+          <Suspense fallback={<AiOpinionLoading />}>
+            <AiOpinion
+              member={member}
+              attemptId={next.attempt_id}
+              questionId={next.question_id}
+              item={{ body: next.body, rubric: next.rubric ?? "", marks: next.marks, answer: next.answerText }}
+            />
+          </Suspense>
           <WrittenForm item={next} action={saveWrittenMark.bind(null, examId)} />
+        </div>
+      )}
+      {secondLooks.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <h3 className="text-base font-medium">Needs a second look</h3>
+          <ul aria-label="Needs a second look" className="flex flex-col gap-1 text-base">
+            {secondLooks.map((look) => (
+              <li key={`${look.attempt_id}:${look.question_id}`}>
+                Roll {look.roll}: you gave {look.human}, the AI gave {look.ai} of {look.marks}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </section>
