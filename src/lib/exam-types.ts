@@ -75,7 +75,7 @@ export type ExamQuestion = InInstitution & { exam_id: string; question_id: strin
 
 export type Enrollment = InInstitution & { exam_id: string; candidate_id: string };
 
-export type AttemptStatus = "in_progress" | "submitted" | "auto_submitted";
+export type AttemptStatus = "in_progress" | "submitted" | "auto_submitted" | "voided";
 
 export type Attempt = InInstitution & {
   exam_id: string;

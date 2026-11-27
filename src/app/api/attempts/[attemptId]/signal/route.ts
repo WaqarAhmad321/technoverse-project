@@ -9,6 +9,7 @@ const MAX_CHARS = 100_000;
 // Signals for the examiner to review, never a penalty. The pasted text itself is never sent.
 const signalSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("tab_hidden"), seconds: z.number().int().min(1).max(MAX_SECONDS) }),
+  z.object({ kind: z.literal("copy"), chars: z.number().int().min(0).max(MAX_CHARS) }),
   z.object({ kind: z.literal("paste"), chars: z.number().int().min(1).max(MAX_CHARS) }),
 ]);
 
