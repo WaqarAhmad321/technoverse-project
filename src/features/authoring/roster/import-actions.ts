@@ -31,6 +31,7 @@ export async function importCandidates(_previous: ImportState, formData: FormDat
         email: candidate.email,
         cnic_masked: maskCnic(candidate.cnic),
         extra_time_pct: candidate.extra_time_pct,
+        section: candidate.section,
       })),
     ),
   );

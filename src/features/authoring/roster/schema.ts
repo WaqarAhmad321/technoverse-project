@@ -16,6 +16,7 @@ export const candidateSchema = z.object({
     .string()
     .trim()
     .regex(CNIC, "CNIC must have 13 digits, such as 35202-1234567-3."),
+  section: z.string().trim().max(60, "Section names are at most 60 characters.").default(""),
   extra_time_pct: z.coerce
     .number({ message: "Extra time must be a whole number from 0 to 100." })
     .int("Extra time must be a whole number from 0 to 100.")
@@ -38,6 +39,7 @@ export function readCandidateForm(formData: FormData): unknown {
     roll_number: formData.get("roll_number") ?? "",
     email: formData.get("email") ?? "",
     cnic: formData.get("cnic") ?? "",
+    section: formData.get("section") ?? "",
     extra_time_pct: formData.get("extra_time_pct") || "0",
   };
 }

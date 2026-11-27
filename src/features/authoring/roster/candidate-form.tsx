@@ -55,6 +55,10 @@ export function CandidateForm() {
           </p>
         </div>
         <div className="flex flex-col gap-1.5">
+          <Label htmlFor="section">Class or section</Label>
+          <Input id="section" name="section" placeholder="BS Physics · Section A" className="h-11" />
+        </div>
+        <div className="flex flex-col gap-1.5">
           <Label htmlFor="extra_time_pct">Extra time (%)</Label>
           <Input id="extra_time_pct" name="extra_time_pct" type="number" inputMode="numeric" min={0} max={100} defaultValue={0} className="h-11" />
         </div>

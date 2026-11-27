@@ -3,6 +3,7 @@ import { SubmitButton } from "@/components/submit-button";
 import { plural } from "../format";
 import { enrollAll, enrollOne, unenrollOne } from "./enrollment-actions";
 import type { EnrollmentView } from "./enrollment-data";
+import { SectionEnroll } from "./section-enroll";
 
 export function EnrollmentPanel({ examId, view, canEdit }: { examId: string; view: EnrollmentView; canEdit: boolean }) {
   return (
@@ -20,6 +21,7 @@ export function EnrollmentPanel({ examId, view, canEdit }: { examId: string; vie
             </form>
           )}
         </div>
+        {canEdit && <SectionEnroll examId={examId} enrolledIds={view.enrolled.map((candidate) => candidate.id)} />}
         {view.enrolled.length === 0 ? (
           <p className="rounded-xl bg-muted px-4 py-6 text-center text-muted-foreground">
             Nobody is enrolled yet. Only enrolled candidates can enter this exam.

@@ -52,6 +52,7 @@ export type Candidate = InInstitution & {
   email: string;
   cnic_masked: string;
   extra_time_pct: number;
+  section: string;
 };
 
 export type Question = InInstitution & {
