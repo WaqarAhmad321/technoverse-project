@@ -75,7 +75,8 @@ async function signIn(page: Page, account: Account): Promise<void> {
 // A test that asks for `world` gets an examiner on `page` and that institution's Ayesha on `candidatePage`.
 // The world's accounts are made once per worker, because seeding an institution is slow; tests that share
 // it must not depend on each other's changes. Every account is removed at the end.
-export const test = base.extend<{ account: Account; world: World }, { worldAccounts: WorldAccounts }>({
+// A test that asks for `accountCandidate` also gets the `account` institution's Ayesha, signed in on her own page.
+export const test = base.extend<{ account: Account; world: World; accountCandidate: Page }, { worldAccounts: WorldAccounts }>({
   worldAccounts: [
     async ({ browser }, runWorker, workerInfo) => {
       const examiner = newAccount();
@@ -104,6 +105,18 @@ export const test = base.extend<{ account: Account; world: World }, { worldAccou
       await runTest({ ...worldAccounts, candidatePage });
     } finally {
       await candidateContext.close();
+    }
+  },
+  accountCandidate: async ({ account, browser }, runTest, testInfo) => {
+    const candidate = { name: "Ayesha Khan", email: pairedCandidateEmail(account.email), password: randomUUID() };
+    const context = await browser.newContext({ baseURL: testInfo.project.use.baseURL });
+    try {
+      const candidatePage = await context.newPage();
+      await signUp(candidatePage, candidate, "candidate");
+      await runTest(candidatePage);
+    } finally {
+      await context.close();
+      await removeAccount(candidate);
     }
   },
   account: async ({ page }, runTest) => {

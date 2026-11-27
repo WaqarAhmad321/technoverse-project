@@ -4,6 +4,7 @@ import type { Member } from "@/lib/access";
 import { db, unwrap } from "@/lib/db";
 import { examPhase, type ExamPhase } from "@/lib/exam-rules";
 import type { Exam, ExamQuestion, Question } from "@/lib/exam-types";
+import type { ChecklistInput, ChecklistQuestion } from "./checklist";
 
 export type ExamRow = Exam & { phase: ExamPhase; enrolledCount: number; submittedCount: number };
 
@@ -83,6 +84,47 @@ export async function countStartedAttempts(member: Member, examId: string): Prom
     .eq("institution_id", member.institution.id)
     .eq("exam_id", examId)
     .eq("is_sandbox", false);
+  if (error) throw new Error(`Database request failed: ${error.message}`);
+  return count ?? 0;
+}
+
+export type ReviewQuestion = ChecklistQuestion & { position: number };
+
+export async function loadReview(member: Member, exam: Exam): Promise<ChecklistInput & { questions: ReviewQuestion[] }> {
+  const [links, enrolled]: [Pick<ExamQuestion, "question_id" | "position">[], number] = await Promise.all([
+    db()
+      .from("exam_questions")
+      .select("question_id, position")
+      .eq("institution_id", member.institution.id)
+      .eq("exam_id", exam.id)
+      .order("position", { ascending: true })
+      .then(unwrap),
+    countEnrolled(member, exam.id),
+  ]);
+  const questions: ChecklistQuestion[] =
+    links.length === 0
+      ? []
+      : unwrap(
+          await db()
+            .from("questions")
+            .select("id, body, kind, marks, options, answer_key, rubric")
+            .eq("institution_id", member.institution.id)
+            .in("id", links.map((link) => link.question_id)),
+        );
+  const byId = new Map(questions.map((question) => [question.id, question]));
+  const ordered = links.flatMap((link) => {
+    const question = byId.get(link.question_id);
+    return question ? [{ ...question, position: link.position }] : [];
+  });
+  return { exam, questions: ordered, enrolledCount: enrolled };
+}
+
+async function countEnrolled(member: Member, examId: string): Promise<number> {
+  const { count, error } = await db()
+    .from("enrollments")
+    .select("id", { count: "exact", head: true })
+    .eq("institution_id", member.institution.id)
+    .eq("exam_id", examId);
   if (error) throw new Error(`Database request failed: ${error.message}`);
   return count ?? 0;
 }

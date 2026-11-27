@@ -99,3 +99,29 @@ test("an examiner adds a candidate to the roster and enrolls them", async ({ pag
   await page.getByRole("button", { name: "Enroll Hamza Riaz" }).click();
   await expect(page.getByRole("heading", { name: "32 enrolled" })).toBeVisible({ timeout: 15_000 });
 });
+
+test("the publish checklist blocks a wrong total, then the candidate sees the published exam", async ({ page, accountCandidate }) => {
+  test.setTimeout(90_000);
+  await page.goto("/manage");
+  await page.getByRole("link", { name: /Physics Midterm/ }).click();
+  const examSections = page.getByRole("navigation", { name: "Exam sections" });
+  await examSections.getByRole("link", { name: "Review and publish" }).click();
+
+  const checklist = page.getByRole("list", { name: "Publish checklist" });
+  await expect(checklist).toContainText("Questions add up to 45 marks, the exam says 50");
+  await expect(page.getByRole("button", { name: "Publish exam" })).toBeDisabled();
+
+  await examSections.getByRole("link", { name: "Questions" }).click();
+  await page.getByRole("button", { name: /^Add to exam: A stone is thrown horizontally/ }).click();
+  await expect(page.getByText("50 of 50 marks")).toBeVisible({ timeout: 15_000 });
+
+  await examSections.getByRole("link", { name: "Review and publish" }).click();
+  await expect(checklist).toContainText("Questions add up to 50 marks");
+  await expect(checklist.getByLabel("Fails")).toHaveCount(0);
+  await page.getByRole("button", { name: "Publish exam" }).click();
+  await expect(page.getByRole("heading", { name: "Published" })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(/^Open now ·/)).toBeVisible();
+
+  await accountCandidate.goto("/exams");
+  await expect(accountCandidate.getByRole("region", { name: "Open now" })).toContainText("Physics Midterm");
+});
