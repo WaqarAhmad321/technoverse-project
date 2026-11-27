@@ -9,6 +9,7 @@ export const navItems: NavItem[] = [
   { href: "/manage", label: "Exams", audience: ["examiner"] },
   { href: "/questions", label: "Question bank", audience: ["examiner"] },
   { href: "/roster", label: "Roster", audience: ["examiner"] },
+  { href: "/marking", label: "Marking", audience: ["examiner"] },
   { href: "/disputes", label: "Disputes", audience: ["examiner"] },
   { href: "/exams", label: "My exams", audience: ["candidate"] },
   { href: "/results", label: "My results", audience: ["candidate"] },

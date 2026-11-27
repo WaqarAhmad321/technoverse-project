@@ -24,7 +24,9 @@ export async function loadWrittenQueue(member: Member, attempts: MarkingAttempt[
       db().from("grades").select("attempt_id, question_id").eq("institution_id", scope).eq("source", "manual").in("attempt_id", ids).then(unwrap),
     ]);
   const done = new Set(manual.map((grade) => `${grade.attempt_id}:${grade.question_id}`));
-  const order = new Map(ids.map((id, index) => [id, index]));
+  // Lowest roll number first, so the queue reads like the register.
+  const rollOf = new Map(finished.map((attempt) => [attempt.id, attempt.candidate?.roll_number ?? ""]));
+  const order = new Map([...ids].sort((a, b) => (rollOf.get(a) ?? "").localeCompare(rollOf.get(b) ?? "")).map((id, index) => [id, index]));
   const pending = written
     .filter((row) => !done.has(`${row.attempt_id}:${row.question_id}`))
     .sort((a, b) => (order.get(a.attempt_id) ?? 0) - (order.get(b.attempt_id) ?? 0));
