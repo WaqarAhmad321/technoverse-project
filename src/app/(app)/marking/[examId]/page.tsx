@@ -1,4 +1,5 @@
-import { ClipboardCheck } from "lucide-react";
+import { ChartColumn, ClipboardCheck, Sparkles, Stethoscope } from "lucide-react";
+import { FeatureSpotlight } from "@/components/feature-spotlight";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/states";
@@ -88,8 +89,30 @@ export default async function MarkingPage({ params, searchParams }: { params: Pr
       ) : (
         <>
           <MarkingTabs examId={exam.id} current={tab} labels={labels} />
-          {tab === "keys" && <KeyDoctorSection examId={exam.id} doctor={doctor} />}
-          {tab === "written" && <WrittenQueueSection member={member} examId={exam.id} queue={queue} secondLooks={secondLooks} />}
+          {tab === "keys" && (
+            <>
+              <FeatureSpotlight
+                icon={Stethoscope}
+                title="Key Doctor"
+                problem="A wrongly keyed question is usually found only after students protest and results are recalled."
+                answer="Imtihaan reads what your strongest candidates chose. When they agree on a different option than your key, it stops publishing until you decide."
+                fact={flagged > 0 ? `${plural(flagged, "key")} to check` : "Every key looks right"}
+              />
+              <KeyDoctorSection examId={exam.id} doctor={doctor} />
+            </>
+          )}
+          {tab === "written" && (
+            <>
+              <FeatureSpotlight
+                icon={Sparkles}
+                title="A blind second marker on every script"
+                problem="Board rechecking only adds the totals again. Nobody reads the answer a second time."
+                answer="Claude marks each written answer against your rubric without seeing your mark, quotes the words that earned each mark, and sends big disagreements back to you. Your mark is always the one that counts."
+                fact={secondLooks.length > 0 ? `${plural(secondLooks.length, "script")} need a second look` : undefined}
+              />
+              <WrittenQueueSection member={member} examId={exam.id} queue={queue} secondLooks={secondLooks} />
+            </>
+          )}
           {tab === "results" && (
             <>
               <section className="flex flex-col gap-3 rounded-3xl bg-card p-4 md:p-6">
@@ -116,6 +139,14 @@ export default async function MarkingPage({ params, searchParams }: { params: Pr
               {summary && <SummarySection summary={summary} maxTotal={exam.total_marks} />}
               <ResultsTable examId={exam.id} scores={scores} page={search.page} />
             </>
+          )}
+          {tab === "analytics" && (
+            <FeatureSpotlight
+              icon={ChartColumn}
+              title="How each question behaved"
+              problem="A question can be too hard, too easy, or reward the weaker candidates, and nobody notices until next year."
+              answer="For every question: how many got it right, whether it separated strong from weak candidates, what the top scorers chose, and where the labelled difficulty was wrong."
+            />
           )}
           {tab === "analytics" && <AnalyticsSection examId={exam.id} rows={doctor.analytics} page={search.page} />}
         </>
