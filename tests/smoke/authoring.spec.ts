@@ -8,10 +8,12 @@ test("an examiner adds a question to the bank and edits it", async ({ page, acco
 
   // The form switches its fields once it has hydrated, so retry the choice until it takes.
   await expect(async () => {
-    await page.getByLabel("Kind").selectOption("multiple");
+    await page.getByLabel("Kind").click({ timeout: 2_000 });
+    await page.getByRole("option", { name: /multiple/i }).click({ timeout: 2_000 });
     await expect(page.getByText("max(0, (right − wrong) / keyed) × marks")).toBeVisible({ timeout: 1_000 });
   }).toPass();
-  await page.getByLabel("Kind").selectOption("single");
+  await page.getByLabel("Kind").click();
+  await page.getByRole("option", { name: /single/i }).click();
 
   await page.getByLabel("Marks").fill("5");
   await page.getByLabel("Topic").fill("Kinematics");
@@ -221,7 +223,8 @@ test("a candidate challenges a question and the examiner decides it", async ({ p
   await candidatePage.goto("/results");
   await candidatePage.getByRole("link", { name: /Physics Pre-test/ }).click();
   await candidatePage.getByRole("link", { name: "Challenge a question" }).click();
-  await candidatePage.getByLabel("Question").selectOption({ index: 1 });
+  await candidatePage.getByLabel("Question").click();
+  await candidatePage.getByRole("option").first().click();
   await candidatePage.getByLabel("What is wrong with it?").fill("Two of the options say the same thing in different words.");
   await candidatePage.getByRole("button", { name: "Send challenge" }).click();
   await expect(candidatePage).toHaveURL(/\/results\//, { timeout: 15_000 });

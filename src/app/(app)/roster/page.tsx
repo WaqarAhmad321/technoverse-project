@@ -1,5 +1,10 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
+import { Pagination } from "@/components/pagination";
+import { paginate } from "@/lib/pagination";
+
+// A class list is scanned by roll number, so a page holds a typical class section.
+const ROSTER_PAGE_SIZE = 25;
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/states";
 import { requireMember } from "@/lib/access";
@@ -7,9 +12,10 @@ import { CandidateForm } from "@/features/authoring/roster/candidate-form";
 import { listRoster } from "@/features/authoring/roster/data";
 import { plural } from "@/features/authoring/format";
 
-export default async function RosterPage() {
+export default async function RosterPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const member = await requireMember("examiner", "institution_admin");
-  const roster = await listRoster(member);
+  const [roster, { page: requestedPage }] = await Promise.all([listRoster(member), searchParams]);
+  const shown = paginate(roster, requestedPage, ROSTER_PAGE_SIZE);
 
   return (
     <div className="flex flex-col gap-4">
@@ -39,7 +45,7 @@ export default async function RosterPage() {
             <span className="text-right">Exams</span>
           </div>
           <ul aria-label="Roster" className="flex flex-col">
-            {roster.map((candidate) => (
+            {shown.rows.map((candidate) => (
               <li
                 key={candidate.id}
                 className="grid gap-1 border-b border-border px-3 py-3 last:border-0 md:min-h-14 md:grid-cols-[1fr_6rem_10rem_6rem_6rem] md:items-center md:gap-3"
@@ -63,6 +69,7 @@ export default async function RosterPage() {
               </li>
             ))}
           </ul>
+          <Pagination page={shown} basePath="/roster" noun="candidates" />
         </div>
       )}
     </div>

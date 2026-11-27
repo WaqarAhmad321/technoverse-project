@@ -17,6 +17,7 @@ export default async function ResultPage({ params }: { params: Promise<{ resultI
   return (
     <div className="flex max-w-3xl flex-col gap-6">
       <PageHeader
+        back={{ href: "/results", label: "My results" }}
         title={exam.title}
         description={`Published ${result.published_at ? formatDate(result.published_at) : ""} · version ${result.version}${result.reason ? `: ${result.reason}` : ""}`}
       >

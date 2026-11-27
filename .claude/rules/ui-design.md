@@ -4,6 +4,20 @@ Before building or changing any screen, read `hack/design.md` and follow it; it 
 
 Judges decide in the first thirty seconds whether this looks real. Slices built apart must read as one product, and none of it may look machine-made.
 
+## Product standard (team decision, 16:40): build it like a Google product, not a demo
+Every screen is designed from the user's side: what they came to do, the next step, and the way back. Use the shared pieces; never improvise a one-off.
+- **Frame:** every signed-in screen sits in the sidebar frame. A new screen adds its nav line in `src/lib/nav.ts` and its icon in `src/components/nav-icons.tsx`.
+- **Way back:** every detail, edit, import or "new" screen passes `back={{ href, label }}` to `PageHeader` ("Exams", "Question bank", ...). No dead ends.
+- **Lists:** any list or table that can pass 10 rows pages with `paginate()` from `@/lib/pagination` and `<Pagination>` from `@/components/pagination` (server-side, `?page=`). Tables sit in `rounded-3xl bg-card p-2`. Row actions are visible buttons, never hover-only.
+- **Icon-only buttons** have an `aria-label` and a `Tooltip` saying what they do. Main actions are a verb plus object with a leading icon where it helps.
+- **Dropdowns:** use the shadcn `Select` from `@/components/ui/select` (it takes `name` for forms), never a native `<select>`. Menus and dialogs come from `src/components/ui/`.
+- **Feedback:** a finished action shows a toast: `useActionToast(state)` from `@/components/use-action-toast` (or `toast.success` from `sonner`). A problem stays next to the form with `FormMessage tone="error"`. No success text dumped into the page.
+- **Status** is an icon plus words (Check, CircleAlert, WifiOff, Clock), never colour alone.
+- **Motion** is calm: colour changes 200ms ease-out, panels and menus 150 to 300ms with a fade, clickable cards use the `lift` class. Nothing snaps, bounces or loops; respect reduced motion.
+- **Home and empty screens** point to the next action. An empty state has an icon, one line and the button that fills it.
+- **Both themes:** the app opens dark; every screen must read well in dark and light. Only tokens, never raw colours.
+- Before landing, look at the screen at 1440px and 390px, in dark, and click every button once.
+
 ## One look
 - Colours, type sizes, spacing and corner radius come from the shared tokens. Never write a raw colour or a one-off size in a slice.
 - Use a shared component before making a new one. If you need a new one that another slice could use, add it to the shared components.

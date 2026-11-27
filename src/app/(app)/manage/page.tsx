@@ -4,7 +4,11 @@ import { EmptyState } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { requireMember } from "@/lib/access";
 import { listExams } from "@/features/authoring/exams/data";
+import { StatusDot, type StatusTone } from "@/components/status-dot";
 import { PHASE_LABEL, formatPakistanTime } from "@/features/authoring/format";
+import type { ExamPhase } from "@/lib/exam-rules";
+
+const PHASE_TONE: Record<ExamPhase, StatusTone> = { draft: "draft", upcoming: "ready", open: "live", closed: "done" };
 
 export default async function ManageExamsPage() {
   const member = await requireMember("examiner", "institution_admin");
@@ -42,7 +46,7 @@ export default async function ManageExamsPage() {
                   </span>
                 </span>
                 <span className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm md:justify-end">
-                  <span className="font-medium">{PHASE_LABEL[exam.phase]}</span>
+                  <StatusDot tone={PHASE_TONE[exam.phase]} className="text-foreground">{PHASE_LABEL[exam.phase]}</StatusDot>
                   <span className="text-muted-foreground">{exam.enrolledCount} enrolled</span>
                   <span className="text-muted-foreground">{exam.submittedCount} submitted</span>
                 </span>

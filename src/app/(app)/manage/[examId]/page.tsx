@@ -51,6 +51,7 @@ export default async function ManageExamPage({ params, searchParams }: { params:
   return (
     <div className="flex flex-col gap-2">
       <PageHeader
+        back={{ href: "/manage", label: "Exams" }}
         title={exam.title}
         description={`${PHASE_LABEL[phase]} · ${formatPakistanTime(exam.opens_at)} to ${formatPakistanTime(exam.closes_at)} · ${exam.duration_minutes} min`}
       >

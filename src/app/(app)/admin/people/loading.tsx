@@ -1,5 +1,5 @@
-import { ListSkeleton } from "@/features/delivery/list-skeleton";
+import { PageSkeleton, TableSkeleton } from "@/components/skeletons";
 
 export default function Loading() {
-  return <ListSkeleton />;
+  return <PageSkeleton><TableSkeleton rows={6} columns={4} /></PageSkeleton>;
 }

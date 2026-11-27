@@ -28,7 +28,7 @@ export default async function ExamInstructionsPage({
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
-      <PageHeader title={exam.title} description={member.institution.name} />
+      <PageHeader title={exam.title} description={member.institution.name} back={{ href: "/exams", label: "My exams" }} />
       <dl className="grid grid-cols-2 gap-4 rounded-3xl bg-card p-6 text-base sm:grid-cols-4">
         <div><dt className="text-sm text-muted-foreground">Duration</dt><dd className="font-medium">{exam.duration_minutes} minutes</dd></div>
         <div><dt className="text-sm text-muted-foreground">Total marks</dt><dd className="font-medium">{exam.total_marks}</dd></div>

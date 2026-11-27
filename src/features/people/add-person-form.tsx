@@ -6,11 +6,13 @@ import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { isActionError, useActionToast } from "@/components/use-action-toast";
 import { addPerson } from "./actions";
 import { ROLE_CHOICES } from "./roles";
 
 export function AddPersonForm() {
   const [state, formAction] = useActionState(addPerson, null);
+  useActionToast(state);
 
   return (
     <form action={formAction} className="flex flex-col gap-4 rounded-3xl bg-card p-4 md:p-6">
@@ -37,7 +39,7 @@ export function AddPersonForm() {
         </div>
         <SubmitButton size="lg">Add person</SubmitButton>
       </div>
-      {state && <FormMessage tone={state.status === "saved" ? "done" : "error"}>{state.message}</FormMessage>}
+      {isActionError(state) && <FormMessage tone="error">{state.message}</FormMessage>}
     </form>
   );
 }

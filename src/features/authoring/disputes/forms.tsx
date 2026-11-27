@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { selectClass } from "../format";
 import type { DisputeFormState } from "./actions";
+import { ThemedSelect } from "@/components/themed-select";
 
 type Action = (previous: DisputeFormState, formData: FormData) => Promise<DisputeFormState>;
 
@@ -17,7 +18,7 @@ export function ChallengeForm({ action, questions }: { action: Action; questions
     <form action={formAction} className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
         <Label htmlFor="question_id">Question</Label>
-        <select id="question_id" name="question_id" className={selectClass} defaultValue="">
+        <ThemedSelect id="question_id" name="question_id" className={selectClass} defaultValue="">
           <option value="" disabled>
             Choose a question
           </option>
@@ -26,7 +27,7 @@ export function ChallengeForm({ action, questions }: { action: Action; questions
               {question.label}
             </option>
           ))}
-        </select>
+        </ThemedSelect>
       </div>
       <div className="flex flex-col gap-2">
         <Label htmlFor="body">What is wrong with it?</Label>
@@ -46,13 +47,13 @@ export function DecisionForm({ action, options }: { action: Action; options: { i
     <form action={formAction} className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
         <Label htmlFor="option">If you uphold it, also accept</Label>
-        <select id="option" name="option" className={selectClass}>
+        <ThemedSelect id="option" name="option" className={selectClass}>
           {options.map((option) => (
             <option key={option.id} value={option.id}>
               {option.id.toUpperCase()}. {option.text}
             </option>
           ))}
-        </select>
+        </ThemedSelect>
       </div>
       <div className="flex flex-col gap-2">
         <Label htmlFor="reason">Reason (the candidate sees it)</Label>

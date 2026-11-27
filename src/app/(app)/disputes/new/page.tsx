@@ -13,7 +13,7 @@ export default async function NewDisputePage({ searchParams }: { searchParams: P
     .map((line) => ({ id: line.question_id, label: `Q${line.position} · ${line.marks_awarded} of ${line.marks} marks` }));
   return (
     <div className="flex max-w-2xl flex-col gap-4">
-      <PageHeader title="Challenge a question" description={`${result.examTitle}. A challenge can only raise marks, never lower them.`} />
+      <PageHeader back={{ href: "/results", label: "My results" }} title="Challenge a question" description={`${result.examTitle}. A challenge can only raise marks, never lower them.`} />
       <section className="rounded-3xl bg-card p-4 md:p-6">
         <ChallengeForm action={sendChallenge.bind(null, result.id)} questions={questions} />
       </section>

@@ -56,19 +56,19 @@
   --card-foreground: oklch(0.309 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.309 0 0);
-  --primary: oklch(0.556 0.245 270);
+  --primary: oklch(0.5 0.095 190);
   --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.954 0.015 278);
+  --secondary: oklch(0.95 0.012 190);
   --secondary-foreground: oklch(0.309 0 0);
-  --muted: oklch(0.954 0.015 278);
+  --muted: oklch(0.955 0.008 190);
   --muted-foreground: oklch(0.482 0 0);
-  --accent: oklch(0.933 0.018 279);
+  --accent: oklch(0.935 0.014 190);
   --accent-foreground: oklch(0.309 0 0);
   --destructive: oklch(0.578 0.206 29);
-  --border: oklch(0.906 0.021 277);
-  --input: oklch(0.906 0.021 277);
-  --ring: oklch(0.556 0.245 270 / 50%);
-  --chart-1: oklch(0.556 0.245 270);
+  --border: oklch(0.905 0.01 200);
+  --input: oklch(0.88 0.012 200);
+  --ring: oklch(0.5 0.095 190 / 50%);
+  --chart-1: oklch(0.5 0.095 190);
   --chart-2: oklch(0.724 0.144 277);
   --chart-3: oklch(0.852 0.074 279);
   --chart-4: oklch(0.482 0 0);
@@ -76,7 +76,7 @@
   --radius: 1rem;
   --sidebar: oklch(1 0 0);
   --sidebar-foreground: oklch(0.309 0 0);
-  --sidebar-primary: oklch(0.556 0.245 270);
+  --sidebar-primary: oklch(0.5 0.095 190);
   --sidebar-primary-foreground: oklch(1 0 0);
   --sidebar-accent: oklch(0.933 0.018 279);
   --sidebar-accent-foreground: oklch(0.309 0 0);
@@ -138,6 +138,12 @@
     @apply font-sans;
   }
 }
+/* Switching theme cross-fades colours instead of snapping. */
+.theme-switching,
+.theme-switching * {
+  transition: background-color 250ms ease-out, color 250ms ease-out, border-color 250ms ease-out !important;
+}
+
 /* Clickable surfaces lift a little on hover; reduced motion keeps only the colour change. */
 @utility lift {
   transition-property: transform, box-shadow, background-color;

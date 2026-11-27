@@ -20,7 +20,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ examId
 
   return (
     <div className="flex max-w-xl flex-col gap-6">
-      <PageHeader title="Your submission counted" description={exam.title} />
+      <PageHeader title="Your submission counted" description={exam.title} back={{ href: "/exams", label: "My exams" }} />
       <section className="flex flex-col gap-4 rounded-3xl bg-card p-6">
         <p className="flex items-center gap-2 text-base">
           <CircleCheck aria-hidden className="size-5 text-primary" />

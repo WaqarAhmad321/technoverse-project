@@ -8,6 +8,7 @@ import type { BankRow } from "../questions/data";
 import { DIFFICULTIES, DIFFICULTY_LABEL, KIND_LABEL, firstLine } from "../questions/schema";
 import { addQuestionToExam, moveQuestionInExam, removeQuestionFromExam } from "./actions";
 import type { PaperQuestion } from "./data";
+import { ThemedSelect } from "@/components/themed-select";
 
 const iconButton = "size-11 rounded-full";
 
@@ -85,20 +86,20 @@ export function BankPicker({
     <div className="flex flex-col gap-3">
       <form method="get" className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
         <input type="hidden" name="tab" value="questions" />
-        <select name="topic" defaultValue={topic ?? ""} className={selectClass} aria-label="Topic">
+        <ThemedSelect name="topic" defaultValue={topic ?? ""} className={selectClass} aria-label="Topic">
           <option value="">All topics</option>
           {topics.map((value) => (
             <option key={value}>{value}</option>
           ))}
-        </select>
-        <select name="difficulty" defaultValue={difficulty ?? ""} className={selectClass} aria-label="Difficulty">
+        </ThemedSelect>
+        <ThemedSelect name="difficulty" defaultValue={difficulty ?? ""} className={selectClass} aria-label="Difficulty">
           <option value="">Any difficulty</option>
           {DIFFICULTIES.map((value) => (
             <option key={value} value={value}>
               {DIFFICULTY_LABEL[value]}
             </option>
           ))}
-        </select>
+        </ThemedSelect>
         <Button type="submit" variant="secondary" size="lg">
           Filter
         </Button>

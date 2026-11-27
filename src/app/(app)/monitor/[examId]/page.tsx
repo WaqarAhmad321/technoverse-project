@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { Wifi, WifiOff } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { TableSkeleton } from "@/components/skeletons";
 import { EmptyState } from "@/components/states";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AnnouncementForm } from "@/features/delivery/announcement-form";
@@ -8,7 +10,10 @@ import { ApproveCreditButton } from "@/features/delivery/approve-credit-button";
 import { loadAnnouncements } from "@/features/delivery/attempts";
 import { AutoRefresh } from "@/features/delivery/auto-refresh";
 import { loadExamForStaff, loadMonitorRows, loadQuestionPreviews, type MonitorRow } from "@/features/delivery/data";
+import { Pagination } from "@/components/pagination";
 import { can, requireMember } from "@/lib/access";
+import { paginate } from "@/lib/pagination";
+import type { Exam } from "@/lib/exam-types";
 import { formatPkt } from "@/lib/format";
 
 const REFRESH_MS = 5_000;
@@ -54,42 +59,32 @@ function StatusCell({ row, questionCount }: { row: MonitorRow; questionCount: nu
   );
 }
 
-export default async function MonitorPage({ params }: { params: Promise<{ examId: string }> }) {
-  const { examId } = await params;
-  const member = await requireMember("examiner", "institution_admin", "controller", "invigilator");
-  const exam = await loadExamForStaff(member, examId);
-  if (!can(member, "exam.monitor", exam)) notFound();
-  const [rows, questions, announcements] = await Promise.all([
-    loadMonitorRows(member, exam.id),
-    loadQuestionPreviews(exam.id, member.institution.id),
-    loadAnnouncements(exam.id),
-  ]);
-  const canSpeak = member.roles.some((role) => role === "examiner" || role === "institution_admin" || role === "controller");
+type Member = Awaited<ReturnType<typeof requireMember>>;
+
+async function MonitorTable({
+  member,
+  exam,
+  canSpeak,
+  requestedPage,
+}: {
+  member: Member;
+  exam: Exam;
+  canSpeak: boolean;
+  requestedPage: string | string[] | undefined;
+}) {
+  const [rows, questions] = await Promise.all([loadMonitorRows(member, exam.id), loadQuestionPreviews(exam.id, member.institution.id)]);
   const order = (row: MonitorRow) => (row.attempt?.status === "in_progress" ? 0 : row.attempt ? 1 : 2);
   const sortedRows = [...rows].sort((a, b) => order(a) - order(b));
+  const shown = paginate(sortedRows, requestedPage);
   const inProgress = rows.filter((row) => row.attempt?.status === "in_progress").length;
   const submitted = rows.filter((row) => row.attempt && row.attempt.status !== "in_progress").length;
 
   return (
-    <div className="flex flex-col gap-6">
-      <AutoRefresh everyMs={REFRESH_MS} />
-      <PageHeader
-        title={exam.title}
-        description={`Live · ${inProgress} sitting now · ${submitted} submitted · ${rows.length} enrolled. Updates every 5 seconds.`}
-      />
-      {canSpeak && <AnnouncementForm examId={exam.id} />}
-      {announcements.length > 0 && (
-        <section className="flex flex-col gap-2 rounded-3xl bg-card p-4 md:p-6">
-          <h2 className="text-xl font-medium">Sent</h2>
-          {announcements.map((item) => (
-            <p key={item.id} className="text-base">
-              <span className="text-sm text-muted-foreground">{formatPkt(item.created_at)} · </span>
-              {item.question_position ? `Q${item.question_position}: ` : ""}
-              {item.body}
-            </p>
-          ))}
-        </section>
-      )}
+    <div className="flex flex-col gap-3">
+      <p className="flex items-center gap-2 text-base text-muted-foreground">
+        <span aria-hidden className="size-2 rounded-full bg-primary motion-safe:animate-pulse" />
+        {inProgress} sitting now · {submitted} submitted · {rows.length} enrolled
+      </p>
       {rows.length === 0 ? (
         <EmptyState message="Nobody is enrolled yet. Enroll candidates from the exam's setup page." />
       ) : (
@@ -104,7 +99,7 @@ export default async function MonitorPage({ params }: { params: Promise<{ examId
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedRows.map((row) => (
+              {shown.rows.map((row) => (
                 <TableRow key={row.candidate.id}>
                   <TableCell className="font-mono">{row.candidate.roll_number}</TableCell>
                   <TableCell>{row.candidate.full_name}</TableCell>
@@ -125,8 +120,48 @@ export default async function MonitorPage({ params }: { params: Promise<{ examId
               ))}
             </TableBody>
           </Table>
+          <Pagination page={shown} basePath={`/monitor/${exam.id}`} noun="candidates" />
         </div>
       )}
+    </div>
+  );
+}
+
+export default async function MonitorPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ examId: string }>;
+  searchParams: Promise<{ page?: string | string[] }>;
+}) {
+  const { examId } = await params;
+  const { page: requestedPage } = await searchParams;
+  const member = await requireMember("examiner", "institution_admin", "controller", "invigilator");
+  const exam = await loadExamForStaff(member, examId);
+  if (!can(member, "exam.monitor", exam)) notFound();
+  const announcements = await loadAnnouncements(exam.id);
+  const canSpeak = member.roles.some((role) => role === "examiner" || role === "institution_admin" || role === "controller");
+
+  return (
+    <div className="flex flex-col gap-6">
+      <AutoRefresh everyMs={REFRESH_MS} />
+      <PageHeader back={{ href: "/monitor", label: "Live monitor" }} title={exam.title} description="Live. Updates every 5 seconds." />
+      {canSpeak && <AnnouncementForm examId={exam.id} />}
+      {announcements.length > 0 && (
+        <section className="flex flex-col gap-2 rounded-3xl bg-card p-4 md:p-6">
+          <h2 className="text-xl font-medium">Sent</h2>
+          {announcements.map((item) => (
+            <p key={item.id} className="text-base">
+              <span className="text-sm text-muted-foreground">{formatPkt(item.created_at)} · </span>
+              {item.question_position ? `Q${item.question_position}: ` : ""}
+              {item.body}
+            </p>
+          ))}
+        </section>
+      )}
+      <Suspense key={String(requestedPage ?? "1")} fallback={<TableSkeleton rows={10} columns={4} />}>
+        <MonitorTable member={member} exam={exam} canSpeak={canSpeak} requestedPage={requestedPage} />
+      </Suspense>
     </div>
   );
 }
