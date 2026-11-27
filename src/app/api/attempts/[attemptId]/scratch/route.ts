@@ -3,7 +3,8 @@ import { z } from "zod";
 import { notFoundResponse, ownAttemptFromRequest } from "@/features/delivery/api";
 import { saveScratch } from "@/features/delivery/attempts";
 
-const MAX_SCRATCH_LENGTH = 20_000;
+// Notes plus a PNG sketch of the drawer canvas.
+const MAX_SCRATCH_LENGTH = 600_000;
 const scratchSchema = z.object({ question_id: z.uuid(), body: z.string().max(MAX_SCRATCH_LENGTH) });
 
 export async function POST(request: Request, { params }: { params: Promise<{ attemptId: string }> }) {

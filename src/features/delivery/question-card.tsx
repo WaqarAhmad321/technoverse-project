@@ -1,6 +1,6 @@
 "use client";
 
-import { Flag, NotebookPen } from "lucide-react";
+import { Flag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { VoiceControls } from "@/components/voice-controls";
@@ -14,13 +14,11 @@ type QuestionCardProps = {
   question: PaperQuestion;
   total: number;
   state: AnswerState;
-  scratch: string;
   onAnswer: (next: AnswerState) => void;
-  onScratch: (text: string) => void;
   onPaste: (chars: number) => void;
 };
 
-export function QuestionCard({ question, total, state, scratch, onAnswer, onScratch, onPaste }: QuestionCardProps) {
+export function QuestionCard({ question, total, state, onAnswer, onPaste }: QuestionCardProps) {
   const headingId = `question-${question.position}-text`;
   const chosen = state.response.choices ?? [];
 
@@ -104,22 +102,7 @@ export function QuestionCard({ question, total, state, scratch, onAnswer, onScra
         </Button>
       </div>
 
-      <details className="group mt-4 rounded-xl bg-muted px-4 py-3" open={scratch.length > 0}>
-        <summary className="flex min-h-8 cursor-pointer list-none items-center gap-2 text-sm font-medium">
-          <NotebookPen aria-hidden className="size-4 text-muted-foreground" />
-          Rough work <span className="font-normal text-muted-foreground">(private, never marked)</span>
-        </summary>
-        <label htmlFor={`scratch-${question.question_id}`} className="sr-only">
-          Rough work for question {question.position}
-        </label>
-        <Textarea
-          id={`scratch-${question.question_id}`}
-          defaultValue={scratch}
-          rows={4}
-          className="mt-2 font-mono"
-          onChange={(event) => onScratch(event.target.value)}
-        />
-      </details>
+
     </article>
   );
 }

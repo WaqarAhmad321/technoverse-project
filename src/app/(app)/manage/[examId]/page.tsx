@@ -68,6 +68,9 @@ export default async function ManageExamPage({ params, searchParams }: { params:
               <Activity aria-hidden /> Live monitor
             </Link>
           </Button>
+          <Button asChild variant="outline" size="lg">
+            <Link href={`/manage/${exam.id}/leak`}>Trace a leak</Link>
+          </Button>
           {phase === "closed" && (
             <Button asChild variant="outline" size="lg">
               <Link href={`/marking/${exam.id}`}>
