@@ -11,3 +11,4 @@
 16:35 shared: voice answers for blind candidates: src/components/voice-controls.tsx (browser speech only), one element in delivery's question-card.tsx and VoiceShortcuts in exam-workspace.tsx (Alt+R read aloud, Alt+V answer by voice)
 16:50 shared: supabase/config.toml local db port 55322 (54322 clashes with another project on umar's laptop); written disputes show the AI re-read and allow raising the mark
 17:55 shared: nav line /marking (Marking list page) + its icon in nav-icons.tsx; marking page split into 4 step tabs; written queue starts at the lowest roll number
+18:30 shared: security headers in next.config.ts (frame deny, nosniff, referrer, HSTS, permissions: mic self only); AI marker treats the answer as data (prompt-injection guard)
