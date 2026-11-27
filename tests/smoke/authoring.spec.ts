@@ -155,7 +155,7 @@ test("an examiner marks a written answer and cannot go over the question's marks
   await page.getByLabel(/^Marks out of/).fill("7");
   await page.getByRole("button", { name: "Save and next" }).click();
   await expect(page.getByText("This question is worth 5 marks.")).toBeVisible();
-  await expect(page.getByLabel("AI second marker")).toContainText("AI second marker: 2.5 of 5.");
+  await expect(page.getByLabel("AI second marker")).toContainText("2.5 of 5 marks.");
   await page.getByLabel(/^Marks out of/).fill("4");
   await page.getByRole("button", { name: "Save and next" }).click();
   await expect(page.getByText("Marking in progress (1 of 30 written answers)")).toBeVisible();
@@ -242,6 +242,40 @@ test("a candidate challenges a question and the examiner decides it", async ({ p
   await page.getByLabel("Reason (the candidate sees it)").fill("The options are clearly different; the key stands.");
   await page.getByRole("button", { name: "Reject" }).click();
   await expect(page.getByRole("list", { name: "Challenges" })).toContainText("Rejected", { timeout: 15_000 });
+});
+
+test("AI variants of a question pass a blind check, get approved and split candidates' papers", async ({ page, freshAccount: account }) => {
+  expect(account.email).toContain("@");
+  await page.goto("/questions?q=A train speeds up evenly");
+  await page.getByRole("link", { name: /A train speeds up evenly/ }).click();
+  await page.getByRole("button", { name: "Write variants" }).click();
+  const variants = page.getByRole("list", { name: "Variants" });
+  await expect(variants.getByText(/^Checked: two separate solves/)).toHaveCount(4, { timeout: 60_000 });
+
+  await page.getByRole("button", { name: "Approve variant 1" }).click();
+  await expect(variants).toContainText("Approved, goes on papers");
+  await page.getByRole("button", { name: "Approve variant 2" }).click();
+  await expect(page.getByText(/Candidates are spread over 3 forms/)).toBeVisible();
+
+  await page.goto("/manage");
+  await page.getByRole("link", { name: /Physics Midterm/ }).click();
+  await page.getByRole("link", { name: "Papers" }).click();
+  await expect(page.getByRole("heading", { name: "3 different papers are possible" })).toBeVisible();
+  await expect(page.getByText("AI variant · different from the other paper").first()).toBeVisible();
+});
+
+test("the AI moderator flags questions outside the pasted syllabus, and a flag can be dismissed", async ({ page, freshAccount: account }) => {
+  expect(account.email).toContain("@");
+  await page.goto("/manage");
+  await page.getByRole("link", { name: /Physics Midterm/ }).click();
+  await page.getByRole("link", { name: "Review and publish" }).click();
+  await page.getByLabel("Syllabus outline (optional)").fill("FSc Part-I Physics: Kinematics, Forces, Energy");
+  await page.getByRole("button", { name: "Check the paper with AI" }).click();
+  const flags = page.getByRole("list", { name: "Moderator flags" });
+  await expect(flags).toContainText("Waves is not in the syllabus you pasted.", { timeout: 60_000 });
+  const before = await flags.getByRole("listitem").count();
+  await flags.getByRole("button", { name: "Dismiss" }).first().click();
+  await expect(flags.getByRole("listitem")).toHaveCount(before - 1);
 });
 
 test("a pasted leak is traced to the papers whose order it matches", async ({ page, account }) => {

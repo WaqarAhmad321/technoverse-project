@@ -33,14 +33,17 @@ export async function AiOpinion({ member, attemptId, questionId, item }: AiOpini
   }
   const source = isDemoMode() ? "Recorded sample (demo mode)" : "Marked by Claude, blind to your mark";
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-border p-4" aria-label="AI second marker">
+    <div className="ai-panel ai-arrive flex flex-col gap-3 rounded-2xl border border-border p-4" aria-label="AI second marker">
       <PanelHeading source={source} />
       <p className="text-base">
-        <span className="font-medium">AI second marker: {mark.marks_awarded} of {item.marks}.</span> {mark.summary}
+        <span className="font-medium">
+          {mark.marks_awarded} of {item.marks} marks.
+        </span>{" "}
+        {mark.summary}
       </p>
       <ul aria-label="Marks per rubric line" className="flex flex-col gap-2">
         {mark.lines.map((line, index) => (
-          <li key={index} className="flex gap-2 text-sm">
+          <li key={index} className="flex gap-2 text-base">
             {line.awarded > 0 ? (
               <CircleCheck aria-label="Earned" className="mt-0.5 size-4 shrink-0" />
             ) : (
@@ -63,9 +66,9 @@ export async function AiOpinion({ member, attemptId, questionId, item }: AiOpini
 
 export function AiOpinionLoading() {
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-border p-4" aria-busy="true">
+    <div className="ai-panel flex flex-col gap-3 rounded-2xl border border-border p-4" aria-busy="true">
       <PanelHeading />
-      <p className="animate-pulse text-base text-muted-foreground motion-reduce:animate-none">Reading the answer against the rubric…</p>
+      <p className="ai-working-text text-base">Claude is reading the answer against the rubric, without seeing your mark…</p>
     </div>
   );
 }

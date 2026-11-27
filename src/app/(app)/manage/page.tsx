@@ -1,4 +1,7 @@
+import { Plus } from "lucide-react";
 import Link from "next/link";
+import { Pagination } from "@/components/pagination";
+import { paginate } from "@/lib/pagination";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/states";
 import { Button } from "@/components/ui/button";
@@ -10,23 +13,29 @@ import type { ExamPhase } from "@/lib/exam-rules";
 
 const PHASE_TONE: Record<ExamPhase, StatusTone> = { draft: "draft", upcoming: "ready", open: "live", closed: "done" };
 
-export default async function ManageExamsPage() {
+export default async function ManageExamsPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const member = await requireMember("examiner", "institution_admin");
-  const exams = await listExams(member);
+  const [allExams, { page }] = await Promise.all([listExams(member), searchParams]);
+  const shown = paginate(allExams, page);
+  const exams = shown.rows;
 
   return (
     <div>
       <PageHeader title="Exams" description="Set them up, publish them, then mark and release results.">
         <Button asChild size="lg">
-          <Link href="/manage/new">New exam</Link>
+          <Link href="/manage/new">
+            <Plus aria-hidden /> New exam
+          </Link>
         </Button>
       </PageHeader>
-      {exams.length === 0 ? (
+      {allExams.length === 0 ? (
         <EmptyState
           message="No exams yet. Create one and pick its questions from your bank."
           action={
             <Button asChild variant="outline" size="lg">
-              <Link href="/manage/new">New exam</Link>
+              <Link href="/manage/new">
+                <Plus aria-hidden /> New exam
+              </Link>
             </Button>
           }
         />
@@ -36,7 +45,7 @@ export default async function ManageExamsPage() {
             <li key={exam.id}>
               <Link
                 href={`/manage/${exam.id}`}
-                className="flex flex-col gap-1 rounded-2xl bg-card p-5 transition-colors duration-200 hover:bg-accent md:flex-row md:items-center md:justify-between"
+                className="lift flex flex-col gap-1 rounded-2xl bg-card p-5 md:flex-row md:items-center md:justify-between"
               >
                 <span className="flex flex-col gap-1">
                   <span className="text-xl font-medium">{exam.title}</span>
@@ -55,6 +64,7 @@ export default async function ManageExamsPage() {
           ))}
         </ul>
       )}
+      <Pagination page={shown} basePath="/manage" noun="exams" />
     </div>
   );
 }

@@ -1,4 +1,8 @@
+import { FeatureSpotlight } from "@/components/feature-spotlight";
+import { Activity, ClipboardCheck, Eye, Fingerprint, ShieldCheck } from "lucide-react";
 import Link from "next/link";
+import { Pagination } from "@/components/pagination";
+import { paginate } from "@/lib/pagination";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { can, requireMember, type Member } from "@/lib/access";
@@ -11,13 +15,16 @@ import { getEnrollment } from "@/features/authoring/exams/enrollment-data";
 import { EnrollmentPanel } from "@/features/authoring/exams/enrollment-panel";
 import { ExamForm } from "@/features/authoring/exams/exam-form";
 import { ExamTabs, parseExamTab } from "@/features/authoring/exams/exam-tabs";
+import { readModeration } from "@/features/authoring/ai/moderator";
+import { ModeratorPanel } from "@/features/authoring/exams/moderator-panel";
+import { PapersPanel } from "@/features/authoring/exams/papers-panel";
 import { ReviewPanel } from "@/features/authoring/exams/review-panel";
 import { BankPicker, MarksTotal, PaperList } from "@/features/authoring/exams/paper-editor";
 import { PHASE_LABEL, formatPakistanTime, toPakistanInputValue } from "@/features/authoring/format";
 import { listQuestions, listTopics } from "@/features/authoring/questions/data";
 import { DIFFICULTIES } from "@/features/authoring/questions/schema";
 
-type Search = { tab?: string; topic?: string; difficulty?: string };
+type Search = { tab?: string; topic?: string; difficulty?: string; epage?: string; npage?: string; bpage?: string };
 
 function lockReason(started: number): string | null {
   if (started === 0) return null;
@@ -56,17 +63,23 @@ export default async function ManageExamPage({ params, searchParams }: { params:
       >
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="outline" size="lg">
-            <Link href={`/exams/${exam.id}/take?preview=1`}>Preview as candidate</Link>
+            <Link href={`/exams/${exam.id}/take?preview=1`}>
+              <Eye aria-hidden /> Preview as candidate
+            </Link>
           </Button>
           <Button asChild variant="outline" size="lg">
-            <Link href={`/monitor/${exam.id}`}>Live monitor</Link>
+            <Link href={`/monitor/${exam.id}`}>
+              <Activity aria-hidden /> Live monitor
+            </Link>
           </Button>
           <Button asChild variant="outline" size="lg">
             <Link href={`/manage/${exam.id}/leak`}>Trace a leak</Link>
           </Button>
           {phase === "closed" && (
             <Button asChild variant="outline" size="lg">
-              <Link href={`/marking/${exam.id}`}>Open marking</Link>
+              <Link href={`/marking/${exam.id}`}>
+                <ClipboardCheck aria-hidden /> Open marking
+              </Link>
             </Button>
           )}
         </div>
@@ -82,7 +95,19 @@ export default async function ManageExamPage({ params, searchParams }: { params:
         </section>
       )}
 
-      {tab === "candidates" && <EnrollmentPanel examId={exam.id} view={await getEnrollment(member, exam.id)} canEdit={canEdit} />}
+      {tab === "papers" && (
+        <div className="flex flex-col gap-4">
+          <FeatureSpotlight
+            icon={Fingerprint}
+            title="A different paper for every candidate"
+            problem="One leaked paper ruins an exam for everyone, and answers shared on WhatsApp fit every seat."
+            answer="The AI writes equal-difficulty versions of each question, each one solved again without the key before it is used. Every candidate sits a different mix, so a leaked paper or a shared answer fits nobody else."
+          />
+          <PapersPanel member={member} exam={exam} />
+        </div>
+      )}
+
+      {tab === "candidates" && <EnrollmentPanel examId={exam.id} view={await getEnrollment(member, exam.id)} canEdit={canEdit} pages={{ enrolled: search.epage, others: search.npage }} />}
 
       {tab === "review" && <ReviewTab member={member} exam={exam} canEdit={canEdit} startedCount={started} />}
 
@@ -95,7 +120,18 @@ export default async function ManageExamPage({ params, searchParams }: { params:
 
 async function ReviewTab({ member, exam, canEdit, startedCount }: { member: Member; exam: Exam; canEdit: boolean; startedCount: number }) {
   const review = await loadReview(member, exam);
-  return <ReviewPanel exam={exam} questions={review.questions} checklist={runChecklist(review)} canEdit={canEdit} startedCount={startedCount} />;
+  return (
+    <div className="flex flex-col gap-4">
+      <FeatureSpotlight
+        icon={ShieldCheck}
+        title="Nothing broken reaches a candidate"
+        problem="Papers get cancelled for wrong totals, missing keys and out-of-syllabus questions found only on exam day."
+        answer="Publishing stays locked until every check passes, and the AI moderator below solves each question without the key, so a wrong key shows up before the exam, not after."
+      />
+      <ReviewPanel exam={exam} questions={review.questions} checklist={runChecklist(review)} canEdit={canEdit} startedCount={startedCount} />
+      <ModeratorPanel examId={exam.id} moderation={readModeration(exam)} canEdit={canEdit && exam.status === "draft"} />
+    </div>
+  );
 }
 
 async function QuestionsTab({
@@ -117,6 +153,8 @@ async function QuestionsTab({
   const topic = search.topic || undefined;
   const [bank, topics] = isEditable ? await Promise.all([listQuestions(member, { topic, difficulty }, false), listTopics(member)]) : [[], []];
   const inPaper = new Set(paper.map((question) => question.id));
+  const available = paginate(bank.filter((question) => !inPaper.has(question.id)), search.bpage);
+  const keptParams = Object.fromEntries(Object.entries({ tab: "questions", topic, difficulty }).flatMap(([key, value]) => (value ? [[key, value]] : [])));
 
   return (
     <div className="flex flex-col gap-4">
@@ -131,7 +169,8 @@ async function QuestionsTab({
       {isEditable && (
         <section className="flex flex-col gap-4 rounded-3xl bg-card p-4 md:p-6">
           <h2 className="text-xl font-medium">Add from your bank</h2>
-          <BankPicker examId={exam.id} bank={bank.filter((question) => !inPaper.has(question.id))} topics={topics} topic={topic} difficulty={difficulty} />
+          <BankPicker examId={exam.id} bank={available.rows} topics={topics} topic={topic} difficulty={difficulty} />
+          <Pagination page={available} basePath={`/manage/${exam.id}`} pageParam="bpage" params={keptParams} noun="questions" />
         </section>
       )}
     </div>
