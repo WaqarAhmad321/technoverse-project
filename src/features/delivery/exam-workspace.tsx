@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import { clearAttemptStorage, loadQueue, nextSeq, storeQueue, type AnswerQueue, type QueuedAnswer } from "./answer-queue";
 import type { PaperQuestion, SavedAnswer } from "./attempts";
 
-const HEARTBEAT_MS = 15_000;
+const HEARTBEAT_MS = 10_000;
 const FLUSH_DELAY_MS = 400;
 const RETRY_DELAYS_MS = [1_000, 2_000, 4_000, 8_000, 10_000];
 const TICK_MS = 1_000;

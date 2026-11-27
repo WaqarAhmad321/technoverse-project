@@ -1,4 +1,7 @@
 import { EmptyState } from "@/components/states";
+import { SubmitButton } from "@/components/submit-button";
+import { AddInstitutionForm } from "@/features/people/add-institution-form";
+import { setInstitutionStatus } from "@/features/people/platform-actions";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/page-header";
 import { loadInstitutions } from "@/features/people/data";
@@ -24,6 +27,9 @@ export default async function PlatformPage() {
               <TableHead className="text-right">People</TableHead>
               <TableHead className="text-right">Exams</TableHead>
               <TableHead>Since</TableHead>
+              <TableHead>
+                <span className="sr-only">Actions</span>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -35,11 +41,19 @@ export default async function PlatformPage() {
                 <TableCell className="text-right">{memberCount}</TableCell>
                 <TableCell className="text-right">{examCount}</TableCell>
                 <TableCell>{formatDate(institution.created_at)}</TableCell>
+                <TableCell className="text-right">
+                  <form action={setInstitutionStatus}>
+                    <input type="hidden" name="institutionId" value={institution.id} />
+                    <input type="hidden" name="status" value={institution.status === "active" ? "suspended" : "active"} />
+                    <SubmitButton variant="ghost">{institution.status === "active" ? "Suspend" : "Reactivate"}</SubmitButton>
+                  </form>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       )}
+      <AddInstitutionForm />
     </div>
   );
 }
