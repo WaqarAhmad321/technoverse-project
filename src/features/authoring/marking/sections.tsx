@@ -1,4 +1,7 @@
 import { Suspense } from "react";
+import { Pagination } from "@/components/pagination";
+import { StatusDot } from "@/components/status-dot";
+import { paginate } from "@/lib/pagination";
 import type { Member } from "@/lib/access";
 import { AiOpinion, AiOpinionLoading } from "../ai/ai-opinion";
 import type { SecondLook } from "../ai/data";
@@ -63,7 +66,9 @@ export function KeyDoctorSection({ examId, doctor }: { examId: string; doctor: K
         Key check
       </h2>
       {doctor.open.length === 0 ? (
-        <p className="text-base text-muted-foreground">No answer key looks wrong.</p>
+        <StatusDot tone="done" className="text-base text-muted-foreground">
+          No answer key looks wrong.
+        </StatusDot>
       ) : (
         <ul aria-label="Flagged questions" className="flex flex-col gap-3">
           {doctor.open.map((flag) => (
@@ -104,7 +109,7 @@ export function SummarySection({ summary, maxTotal }: { summary: ExamSummary; ma
       </h2>
       <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {stats.map(([label, value]) => (
-          <div key={label} className="flex flex-col">
+          <div key={label} className="flex flex-col rounded-2xl bg-muted p-4">
             <dt className="text-sm text-muted-foreground">{label}</dt>
             <dd className="text-xl font-medium tabular-nums">{value}</dd>
           </div>
@@ -130,10 +135,15 @@ export function SummarySection({ summary, maxTotal }: { summary: ExamSummary; ma
   );
 }
 
-export function ResultsTable({ scores }: { scores: ScoreRow[] }) {
+export function ResultsTable({ examId, scores, page }: { examId: string; scores: ScoreRow[]; page?: string }) {
+  const shown = paginate(scores, page);
   return (
-    <ul aria-label="Attempts" className="flex flex-col rounded-3xl bg-card p-2 md:p-4">
-      {scores.map((score) => (
+    <section aria-labelledby="results-heading" className="rounded-3xl bg-card p-2 md:p-4">
+      <h2 id="results-heading" className="px-3 pt-2 pb-3 text-xl font-medium">
+        Results by candidate
+      </h2>
+      <ul aria-label="Attempts" className="flex flex-col">
+      {shown.rows.map((score) => (
         <li key={score.attempt_id} className="flex min-h-14 items-center justify-between gap-4 border-b border-border px-3 last:border-0">
           <span className="flex min-w-0 flex-col">
             <span className="text-base">{score.name}</span>
@@ -144,7 +154,9 @@ export function ResultsTable({ scores }: { scores: ScoreRow[] }) {
           </span>
         </li>
       ))}
-    </ul>
+      </ul>
+      <Pagination page={shown} basePath={`/marking/${examId}`} params={{ tab: "results" }} noun="attempts" />
+    </section>
   );
 }
 
@@ -152,15 +164,16 @@ function pct(share: number): string {
   return `${Math.round(share * PERCENT)}%`;
 }
 
-export function AnalyticsSection({ rows }: { rows: AnalyticsRow[] }) {
+export function AnalyticsSection({ examId, rows, page }: { examId: string; rows: AnalyticsRow[]; page?: string }) {
   if (rows.length === 0) return null;
+  const shown = paginate(rows, page);
   return (
     <section aria-labelledby="analytics-heading" className="flex flex-col gap-4 rounded-3xl bg-card p-4 md:p-6">
       <h2 id="analytics-heading" className="text-xl font-medium">
         How each question behaved
       </h2>
       <ul aria-label="Question analytics" className="flex flex-col">
-        {rows.map((row) => (
+        {shown.rows.map((row) => (
           <li key={row.question_id} className="flex flex-col gap-2 border-b border-border py-3 last:border-0">
             <p className="text-base">
               <span className="font-medium">Q{row.position}</span> {firstLine(row.body)}
@@ -183,6 +196,7 @@ export function AnalyticsSection({ rows }: { rows: AnalyticsRow[] }) {
           </li>
         ))}
       </ul>
+      <Pagination page={shown} basePath={`/marking/${examId}`} params={{ tab: "analytics" }} noun="questions" />
     </section>
   );
 }

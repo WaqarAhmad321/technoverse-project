@@ -1,7 +1,9 @@
 "use client";
 
 import { useActionState } from "react";
+import { ArrowRight } from "lucide-react";
 import { FormMessage } from "@/components/form-message";
+import { isActionError, useActionToast } from "@/components/use-action-toast";
 import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +18,7 @@ type WrittenFormProps = {
 
 export function WrittenForm({ item, action }: WrittenFormProps) {
   const [state, formAction] = useActionState(action, null);
+  useActionToast(state);
   return (
     <form action={formAction} className="flex flex-col gap-4">
       <input type="hidden" name="attempt_id" value={item.attempt_id} />
@@ -28,9 +31,10 @@ export function WrittenForm({ item, action }: WrittenFormProps) {
         <Label htmlFor="feedback">Feedback for the candidate (optional)</Label>
         <Textarea id="feedback" name="feedback" rows={2} />
       </div>
-      {state && <FormMessage tone={state.status === "error" ? "error" : "done"}>{state.message}</FormMessage>}
+      {state && isActionError(state) && <FormMessage tone="error">{state.message}</FormMessage>}
       <SubmitButton size="lg" className="self-start">
         Save and next
+        <ArrowRight aria-hidden />
       </SubmitButton>
     </form>
   );

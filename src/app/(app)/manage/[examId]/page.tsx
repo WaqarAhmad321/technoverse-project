@@ -1,4 +1,7 @@
+import { Activity, ClipboardCheck, Eye } from "lucide-react";
 import Link from "next/link";
+import { Pagination } from "@/components/pagination";
+import { paginate } from "@/lib/pagination";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { can, requireMember, type Member } from "@/lib/access";
@@ -17,7 +20,7 @@ import { PHASE_LABEL, formatPakistanTime, toPakistanInputValue } from "@/feature
 import { listQuestions, listTopics } from "@/features/authoring/questions/data";
 import { DIFFICULTIES } from "@/features/authoring/questions/schema";
 
-type Search = { tab?: string; topic?: string; difficulty?: string };
+type Search = { tab?: string; topic?: string; difficulty?: string; epage?: string; npage?: string; bpage?: string };
 
 function lockReason(started: number): string | null {
   if (started === 0) return null;
@@ -56,17 +59,23 @@ export default async function ManageExamPage({ params, searchParams }: { params:
       >
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="outline" size="lg">
-            <Link href={`/exams/${exam.id}/take?preview=1`}>Preview as candidate</Link>
+            <Link href={`/exams/${exam.id}/take?preview=1`}>
+              <Eye aria-hidden /> Preview as candidate
+            </Link>
           </Button>
           <Button asChild variant="outline" size="lg">
-            <Link href={`/monitor/${exam.id}`}>Live monitor</Link>
+            <Link href={`/monitor/${exam.id}`}>
+              <Activity aria-hidden /> Live monitor
+            </Link>
           </Button>
           <Button asChild variant="outline" size="lg">
             <Link href={`/manage/${exam.id}/leak`}>Trace a leak</Link>
           </Button>
           {phase === "closed" && (
             <Button asChild variant="outline" size="lg">
-              <Link href={`/marking/${exam.id}`}>Open marking</Link>
+              <Link href={`/marking/${exam.id}`}>
+                <ClipboardCheck aria-hidden /> Open marking
+              </Link>
             </Button>
           )}
         </div>
@@ -82,7 +91,7 @@ export default async function ManageExamPage({ params, searchParams }: { params:
         </section>
       )}
 
-      {tab === "candidates" && <EnrollmentPanel examId={exam.id} view={await getEnrollment(member, exam.id)} canEdit={canEdit} />}
+      {tab === "candidates" && <EnrollmentPanel examId={exam.id} view={await getEnrollment(member, exam.id)} canEdit={canEdit} pages={{ enrolled: search.epage, others: search.npage }} />}
 
       {tab === "review" && <ReviewTab member={member} exam={exam} canEdit={canEdit} startedCount={started} />}
 
@@ -117,6 +126,8 @@ async function QuestionsTab({
   const topic = search.topic || undefined;
   const [bank, topics] = isEditable ? await Promise.all([listQuestions(member, { topic, difficulty }, false), listTopics(member)]) : [[], []];
   const inPaper = new Set(paper.map((question) => question.id));
+  const available = paginate(bank.filter((question) => !inPaper.has(question.id)), search.bpage);
+  const keptParams = Object.fromEntries(Object.entries({ tab: "questions", topic, difficulty }).flatMap(([key, value]) => (value ? [[key, value]] : [])));
 
   return (
     <div className="flex flex-col gap-4">
@@ -131,7 +142,8 @@ async function QuestionsTab({
       {isEditable && (
         <section className="flex flex-col gap-4 rounded-3xl bg-card p-4 md:p-6">
           <h2 className="text-xl font-medium">Add from your bank</h2>
-          <BankPicker examId={exam.id} bank={bank.filter((question) => !inPaper.has(question.id))} topics={topics} topic={topic} difficulty={difficulty} />
+          <BankPicker examId={exam.id} bank={available.rows} topics={topics} topic={topic} difficulty={difficulty} />
+          <Pagination page={available} basePath={`/manage/${exam.id}`} pageParam="bpage" params={keptParams} noun="questions" />
         </section>
       )}
     </div>

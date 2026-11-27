@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { FormMessage } from "@/components/form-message";
 import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +33,9 @@ export function ExamForm({ action, values, submitLabel, lockedReason, canEdit }:
   const [state, formAction] = useActionState(action, null);
   const [clientError, setClientError] = useState<string | null>(null);
   const isTimingLocked = lockedReason !== null;
+  useEffect(() => {
+    if (state?.status === "saved") toast.success("Exam details saved.");
+  }, [state]);
 
   function checkBeforeSend(event: React.FormEvent<HTMLFormElement>) {
     const parsed = examSchema.safeParse(readExamForm(new FormData(event.currentTarget)));
@@ -92,7 +96,6 @@ export function ExamForm({ action, values, submitLabel, lockedReason, canEdit }:
           )}
         </div>
         {message && <FormMessage tone="error">{message}</FormMessage>}
-        {state?.status === "saved" && !clientError && <FormMessage tone="done">Exam details saved.</FormMessage>}
         <SubmitButton size="lg" className="self-start">
           {submitLabel}
         </SubmitButton>
