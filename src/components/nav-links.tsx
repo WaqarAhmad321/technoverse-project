@@ -18,8 +18,8 @@ export function NavLinks({ items, onNavigate }: { items: NavItem[]; onNavigate?:
         aria-current={isCurrent ? "page" : undefined}
         onClick={onNavigate}
         className={cn(
-          "flex min-h-11 items-center rounded-md px-3 text-base text-muted-foreground hover:text-foreground",
-          isCurrent && "bg-muted font-medium text-foreground",
+          "flex min-h-11 items-center rounded-full px-4 text-base text-muted-foreground transition-colors duration-200 ease-out hover:bg-accent hover:text-foreground",
+          isCurrent && "bg-secondary font-medium text-foreground",
         )}
       >
         {item.label}

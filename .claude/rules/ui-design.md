@@ -1,5 +1,7 @@
 # UI: one product, not a set of parts
 
+Before building or changing any screen, read `hack/design.md` and follow it; it sets the tokens, type, radius, elevation and component recipes. Where it and this file disagree, this file wins.
+
 Judges decide in the first thirty seconds whether this looks real. Slices built apart must read as one product, and none of it may look machine-made.
 
 ## One look

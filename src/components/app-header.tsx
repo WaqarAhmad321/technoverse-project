@@ -9,10 +9,10 @@ type AppHeaderProps = { userName: string; userEmail: string; institutionName: st
 
 export function AppHeader({ userName, userEmail, institutionName, items }: AppHeaderProps) {
   return (
-    <header className="border-b bg-background">
-      <div className="mx-auto flex h-16 w-full max-w-5xl items-center gap-2 px-4">
+    <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm">
+      <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-2 px-4 md:px-8">
         <MobileNav items={items} />
-        <Link href={APP_HOME} className="mr-4 text-base font-semibold">
+        <Link href={APP_HOME} className="mr-4 text-xl font-medium tracking-tight">
           {site.name}
         </Link>
         <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
