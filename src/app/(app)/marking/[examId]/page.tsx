@@ -7,6 +7,10 @@ import { getExam } from "@/features/authoring/exams/data";
 import { markObjectiveAnswers } from "@/features/authoring/marking/actions";
 import { autoGradeObjective } from "@/features/authoring/marking/auto-grade";
 import { listFinishedAttempts, objectiveTotals } from "@/features/authoring/marking/data";
+import { fixKey } from "@/features/authoring/marking/key-doctor-actions";
+import { KeyDoctorCard } from "@/features/authoring/marking/key-doctor-card";
+import { loadKeyDoctor, type KeyDoctorView } from "@/features/authoring/marking/key-doctor-data";
+import { Button } from "@/components/ui/button";
 import { saveWrittenMark } from "@/features/authoring/marking/written-actions";
 import { loadWrittenQueue, type WrittenQueue } from "@/features/authoring/marking/written-data";
 import { WrittenForm } from "@/features/authoring/marking/written-form";
@@ -19,7 +23,12 @@ export default async function MarkingPage({ params }: { params: Promise<{ examId
   const attempts = await listFinishedAttempts(member, exam.id);
   // Opening a closed exam marks its objective answers, so the examiner never starts from a blank sheet.
   const progress = examPhase(exam) === "closed" ? await autoGradeObjective(member, exam.id, attempts) : null;
-  const [totals, queue] = await Promise.all([objectiveTotals(member, attempts.map((attempt) => attempt.id)), loadWrittenQueue(member, attempts)]);
+  const [totals, queue, doctor] = await Promise.all([
+    objectiveTotals(member, attempts.map((attempt) => attempt.id)),
+    loadWrittenQueue(member, attempts),
+    loadKeyDoctor(member, exam.id, attempts),
+  ]);
+  const flagged = doctor.open.length;
 
   return (
     <div className="flex flex-col gap-4">
@@ -35,6 +44,22 @@ export default async function MarkingPage({ params }: { params: Promise<{ examId
           {plural(progress.attempts, "attempt")} · {plural(progress.objectiveMarked, "objective answer")} marked ·{" "}
           {plural(progress.writtenToMark, "written answer")} to mark
         </p>
+      )}
+      {attempts.length > 0 && <KeyDoctorSection examId={exam.id} doctor={doctor} />}
+      {attempts.length > 0 && (
+        <div className="flex flex-wrap items-center gap-3">
+          {/* STAND-IN(umar): task 090 turns this into the real publish action. */}
+          <Button size="lg" disabled={flagged > 0 || queue.next !== null}>
+            Publish results
+          </Button>
+          <p className="text-base text-muted-foreground">
+            {flagged > 0
+              ? `Resolve ${plural(flagged, "flagged question")} before publishing.`
+              : queue.next
+                ? "Mark every written answer before publishing."
+                : "Ready to publish."}
+          </p>
+        </div>
       )}
       {queue.total > 0 && <WrittenQueueSection examId={exam.id} queue={queue} />}
       {attempts.length === 0 ? (
@@ -80,6 +105,34 @@ function WrittenQueueSection({ examId, queue }: { examId: string; queue: Written
           <blockquote className="whitespace-pre-line border-l-2 border-border pl-4 text-base">{next.answerText || "No answer given."}</blockquote>
           <WrittenForm item={next} action={saveWrittenMark.bind(null, examId)} />
         </div>
+      )}
+    </section>
+  );
+}
+
+function KeyDoctorSection({ examId, doctor }: { examId: string; doctor: KeyDoctorView }) {
+  return (
+    <section aria-labelledby="doctor-heading" className="flex flex-col gap-4 rounded-3xl bg-card p-4 md:p-6">
+      <h2 id="doctor-heading" className="text-xl font-medium">
+        Key check
+      </h2>
+      {doctor.open.length === 0 ? (
+        <p className="text-base text-muted-foreground">No answer key looks wrong.</p>
+      ) : (
+        <ul aria-label="Flagged questions" className="flex flex-col gap-3">
+          {doctor.open.map((flag) => (
+            <KeyDoctorCard key={flag.question_id} flag={flag} action={fixKey.bind(null, examId)} />
+          ))}
+        </ul>
+      )}
+      {doctor.fixes.length > 0 && (
+        <ul aria-label="Key fixes" className="flex flex-col gap-1 text-base text-muted-foreground">
+          {doctor.fixes.map((fix) => (
+            <li key={fix.id}>
+              Fixed: {fix.decision.replace("_", " ")} · {fix.reason}
+            </li>
+          ))}
+        </ul>
       )}
     </section>
   );

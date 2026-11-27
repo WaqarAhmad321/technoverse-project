@@ -154,3 +154,21 @@ test("an examiner marks a written answer and cannot go over the question's marks
   await page.getByRole("button", { name: "Save and next" }).click();
   await expect(page.getByText("Marking in progress (1 of 30 written answers)")).toBeVisible();
 });
+
+test("the key check flags Q7, blocks publishing, and a key change regrades everyone", async ({ page, examiner }) => {
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(examiner.name);
+  await page.goto("/manage");
+  await page.getByRole("link", { name: /Physics Quiz 1/ }).click();
+  await page.getByRole("link", { name: "Open marking" }).click();
+  const flags = page.getByRole("list", { name: "Flagged questions" });
+  await expect(flags).toContainText(/Q7: \d+% of the top scorers chose B, the key says C\./, { timeout: 20_000 });
+  await expect(page.getByRole("button", { name: "Publish results" })).toBeDisabled();
+  const ayesha = page.getByRole("list", { name: "Attempts" }).getByRole("listitem").filter({ hasText: "Ayesha Khan" });
+  const before = Number((await ayesha.innerText()).match(/([\d.]+) objective marks/)?.[1]);
+
+  await page.getByLabel("Reason (shown on results)").fill("Top scorers chose B; B is correct");
+  await page.getByRole("button", { name: "Change key to B" }).click();
+  await expect(page.getByText("No answer key looks wrong.")).toBeVisible({ timeout: 20_000 });
+  const after = Number((await ayesha.innerText()).match(/([\d.]+) objective marks/)?.[1]);
+  expect(after).toBeGreaterThan(before);
+});

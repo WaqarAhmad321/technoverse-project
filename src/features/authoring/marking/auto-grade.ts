@@ -23,7 +23,7 @@ export async function autoGradeObjective(member: Member, examId: string, attempt
   const [paper, answers, fixes]: [PaperRow[], AnswerRow[], KeyFix[]] = await Promise.all([
     db().from("attempt_questions").select("attempt_id, question_id, kind, marks, multiple_rule, answer_key").eq("institution_id", scope).in("attempt_id", attemptIds).then(unwrap),
     db().from("answers").select("attempt_id, question_id, response, received_at").eq("institution_id", scope).in("attempt_id", attemptIds).then(unwrap),
-    db().from("key_fixes").select("*").eq("institution_id", scope).eq("exam_id", examId).then(unwrap),
+    db().from("key_fixes").select("*").eq("institution_id", scope).eq("exam_id", examId).order("created_at", { ascending: true }).then(unwrap),
   ]);
 
   const attemptById = new Map(finished.map((attempt) => [attempt.id, attempt]));

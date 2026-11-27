@@ -34,3 +34,15 @@ test("key fixes override the snapshot key", () => {
   assert.equal(scoreObjective(single, { choices: ["a"] }, { decision: "full_marks", old_key: ["c"], new_key: null }), 3);
   assert.equal(scoreObjective(single, { choices: ["c"] }, { decision: "drop", old_key: ["c"], new_key: null }), 0);
 });
+
+test("key doctor flags a key the top scorers reject", async () => {
+  const { runKeyDoctor } = await import("../../src/features/authoring/key-doctor.ts");
+  const question = { question_id: "q7", position: 7, options: ["a", "b", "c", "d"].map((id) => ({ id, text: id })), answer_key: ["c"] };
+  const attempts = Array.from({ length: 30 }, (_, index) => ({
+    total: 30 - index,
+    choices: new Map([["q7", [index < 15 ? "b" : "c"]]]),
+  }));
+  const [flag] = runKeyDoctor([question], attempts);
+  assert.equal(flag?.kind, "wrong_key");
+  assert.equal(flag?.summary, "Q7: 100% of the top scorers chose B, the key says C.");
+});
