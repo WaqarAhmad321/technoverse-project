@@ -8,3 +8,6 @@
 14:18 shared: smoke waits raised (expect 12s, test 90s) in playwright.config.ts: every save is several round trips to the remote database
 14:40 decided: result PDF is built on the server with pdf-lib and qrcode; standard fonts, so non-Latin characters are dropped from the PDF
 15:00 shared: .high-contrast class in globals.css (candidate display setting); /api/time returns server time
+15:20 decided: time back after an outage trusts the phone's count of answers typed offline; capped at 10% of the exam (exams.settings.credit_cap_pct), over 5 min needs the examiner's approval on the monitor
+15:30 fix: audit hashes use key-sorted JSON (jsonb reorders keys); sign-up wait in the smoke fixture is 45s
+15:40 shared: smoke fixture `account` is now one seeded examiner per worker (signed in per test); the database was timing out under per-test seeding. Ran reset-demo to clear leftovers

@@ -88,6 +88,11 @@ test("the institution admin makes a candidate an examiner, but cannot drop her o
   await page.getByRole("checkbox", { name: /^Examiner/ }).uncheck();
   await page.getByRole("button", { name: "Save roles" }).click();
   await expect(page.getByRole("row", { name: /Ayesha Khan/ }).getByText("Candidate", { exact: true })).toBeVisible({ timeout: SAVE_MS });
+
+  await page.goto("/admin/audit");
+  await expect(page.getByText("Changed someone's roles").first()).toBeVisible();
+  await page.getByRole("button", { name: "Verify chain" }).click();
+  await expect(page.getByText(/events verified/)).toBeVisible({ timeout: SAVE_MS });
 });
 
 test("an examiner previews a draft exam as a candidate, and it is not recorded", async ({ page, world }) => {

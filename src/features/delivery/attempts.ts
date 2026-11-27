@@ -347,14 +347,63 @@ export async function recordIncident(
   );
 }
 
+const DEFAULT_CREDIT_CAP_PCT = 10;
+const AUTO_CREDIT_MAX_SECONDS = 5 * 60;
+const SECONDS_PER_MINUTE = 60;
+
+function creditCapSeconds(exam: Pick<Exam, "duration_minutes" | "settings">): number {
+  const capPct = typeof exam.settings.credit_cap_pct === "number" ? exam.settings.credit_cap_pct : DEFAULT_CREDIT_CAP_PCT;
+  return Math.round((exam.duration_minutes * SECONDS_PER_MINUTE * capPct) / PERCENT);
+}
+
+// Fair time back: a gap she kept working through earns nothing; a gap she could not work through
+// earns its length, capped per exam. Up to five minutes is automatic; more waits for the examiner.
+async function creditForGap(member: Member, attempt: CandidateAttempt, gapSeconds: number): Promise<void> {
+  const exam: Pick<Exam, "duration_minutes" | "settings"> | null = unwrap(
+    await db().from("exams").select("duration_minutes, settings").eq("id", attempt.exam_id).maybeSingle(),
+  );
+  if (!exam) return;
+  const credit = Math.max(0, Math.min(gapSeconds, creditCapSeconds(exam) - attempt.credit_seconds));
+  if (credit === 0) return;
+  if (credit > AUTO_CREDIT_MAX_SECONDS) {
+    await recordIncident(member, attempt, "credit_pending", { seconds: credit });
+    return;
+  }
+  unwrap(await db().from("attempts").update({ credit_seconds: attempt.credit_seconds + credit }).eq("id", attempt.id));
+  await recordIncident(member, attempt, "time_credited", { seconds: credit });
+}
+
 // A heartbeat after a long silence means the candidate was cut off: recorded as a signal, never a penalty.
-export async function recordHeartbeat(member: Member, attempt: CandidateAttempt): Promise<void> {
+export async function recordHeartbeat(member: Member, attempt: CandidateAttempt, answeredOffline: number): Promise<void> {
   const now = new Date();
   if (attempt.last_seen_at) {
     const gapSeconds = Math.round((now.getTime() - new Date(attempt.last_seen_at).getTime()) / MS_PER_SECOND);
-    if (gapSeconds > OFFLINE_GAP_SECONDS) await recordIncident(member, attempt, "offline", { seconds: gapSeconds });
+    if (gapSeconds > OFFLINE_GAP_SECONDS) {
+      await recordIncident(member, attempt, "offline", { seconds: gapSeconds, answered_offline: answeredOffline });
+      if (answeredOffline === 0 && !attempt.is_sandbox) await creditForGap(member, attempt, gapSeconds);
+    }
   }
   unwrap(await db().from("attempts").update({ last_seen_at: now.toISOString() }).eq("id", attempt.id));
+}
+
+export async function approvePendingCredit(member: Member, attemptId: string, seconds: number): Promise<void> {
+  const attempt: { id: string; credit_seconds: number; status: string } | null = unwrap(
+    await db()
+      .from("attempts")
+      .select("id, credit_seconds, status")
+      .eq("id", attemptId)
+      .eq("institution_id", member.institution.id)
+      .maybeSingle(),
+  );
+  if (!attempt || attempt.status !== "in_progress") return;
+  unwrap(await db().from("attempts").update({ credit_seconds: attempt.credit_seconds + seconds }).eq("id", attempt.id));
+  unwrap(
+    await db()
+      .from("incidents")
+      .update({ kind: "time_credited" })
+      .eq("attempt_id", attempt.id)
+      .eq("kind", "credit_pending"),
+  );
 }
 
 // Submitting twice returns the first receipt: only an in-progress attempt changes.

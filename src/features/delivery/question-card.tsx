@@ -16,9 +16,10 @@ type QuestionCardProps = {
   scratch: string;
   onAnswer: (next: AnswerState) => void;
   onScratch: (text: string) => void;
+  onPaste: (chars: number) => void;
 };
 
-export function QuestionCard({ question, total, state, scratch, onAnswer, onScratch }: QuestionCardProps) {
+export function QuestionCard({ question, total, state, scratch, onAnswer, onScratch, onPaste }: QuestionCardProps) {
   const headingId = `question-${question.position}-text`;
   const chosen = state.response.choices ?? [];
 
@@ -42,6 +43,7 @@ export function QuestionCard({ question, total, state, scratch, onAnswer, onScra
             defaultValue={state.response.text ?? ""}
             rows={8}
             onChange={(event) => onAnswer({ ...state, response: { text: event.target.value } })}
+            onPaste={(event) => onPaste(event.clipboardData.getData("text").length)}
           />
         </div>
       ) : (

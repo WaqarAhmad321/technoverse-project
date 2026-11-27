@@ -30,6 +30,7 @@ const MS_PER_SECOND = 1_000;
 const SECONDS_PER_MINUTE = 60;
 const SLOW_ROUND_TRIP_MS = 1_500;
 const SCRATCH_DELAY_MS = 800;
+const MIN_HIDDEN_SECONDS = 2;
 
 type Announcement = { id: string; body: string; question_position: number | null; created_at: string };
 type ServerState = { status: string; deadline: string; server_now: string; receipt_code: string | null };
@@ -116,6 +117,9 @@ export function ExamWorkspace(props: WorkspaceProps) {
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
   const [roundTripMs, setRoundTripMs] = useState<number | null>(null);
   const scratchTimers = useRef<Record<string, number>>({});
+  const answeredOffline = useRef(0);
+  const hiddenSince = useRef<number | null>(null);
+  const [creditSeconds, setCreditSeconds] = useState(0);
 
   const pendingRef = useRef<AnswerQueue>(initialQueue);
   const flushRef = useRef<() => Promise<boolean>>(async () => true);
@@ -210,13 +214,20 @@ export function ExamWorkspace(props: WorkspaceProps) {
   const heartbeat = useCallback(async () => {
     try {
       const sentAt = Date.now();
-      const response = await fetch(`/api/attempts/${attemptId}/heartbeat`, { method: "POST" });
+      const response = await fetch(`/api/attempts/${attemptId}/heartbeat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answered_offline: answeredOffline.current }),
+      });
       setRoundTripMs(Date.now() - sentAt);
       const body: unknown = await response.json().catch(() => null);
       const state = readServerState(body);
       if (!response.ok || !state) throw new Error(`Heartbeat failed with ${response.status}`);
       setIsOnline(true);
+      answeredOffline.current = 0;
       applyServerState(state);
+      const credit = typeof body === "object" && body !== null ? (body as Record<string, unknown>).credit_seconds : 0;
+      if (typeof credit === "number") setCreditSeconds(credit);
       const latest = readAnnouncements(body);
       if (latest) setAnnouncements(latest);
       if (Object.keys(pendingRef.current).length > 0) void flush();
@@ -268,6 +279,7 @@ export function ExamWorkspace(props: WorkspaceProps) {
       client_seq: seq,
       saved_offline: !isOnline,
     };
+    if (!isOnline) answeredOffline.current += 1;
     updatePending({ ...pendingRef.current, [questionId]: op });
     scheduleFlush();
   }
@@ -288,6 +300,32 @@ export function ExamWorkspace(props: WorkspaceProps) {
       }).catch(() => undefined);
     }, SCRATCH_DELAY_MS);
   }
+
+  const sendSignal = useCallback(
+    (signal: { kind: "tab_hidden"; seconds: number } | { kind: "paste"; chars: number }) => {
+      void fetch(`/api/attempts/${attemptId}/signal`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(signal),
+      }).catch(() => undefined);
+    },
+    [attemptId],
+  );
+
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        hiddenSince.current = Date.now();
+        return;
+      }
+      if (hiddenSince.current === null) return;
+      const seconds = Math.round((Date.now() - hiddenSince.current) / MS_PER_SECOND);
+      hiddenSince.current = null;
+      if (seconds >= MIN_HIDDEN_SECONDS) sendSignal({ kind: "tab_hidden", seconds });
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, [sendSignal]);
 
   function changePrefs(next: WorkspacePrefs) {
     setPrefs(next);
@@ -369,6 +407,7 @@ export function ExamWorkspace(props: WorkspaceProps) {
               scratch={props.scratch[item.question_id] ?? ""}
               onAnswer={(next) => record(item.question_id, next)}
               onScratch={(text) => recordScratch(item.question_id, text)}
+              onPaste={(chars) => chars > 0 && sendSignal({ kind: "paste", chars })}
             />
           ))}
         </div>
@@ -385,6 +424,11 @@ export function ExamWorkspace(props: WorkspaceProps) {
               {formatRemaining(remainingMs)}
             </span>
           </div>
+          {creditSeconds > 0 && (
+            <p role="status" className="text-sm">
+              {formatRemaining(creditSeconds * MS_PER_SECOND)} added because your connection dropped.
+            </p>
+          )}
           <p className="text-sm text-muted-foreground">{examTitle}</p>
           <nav aria-label="Question navigator">
             <ol className="grid grid-cols-5 gap-2">
