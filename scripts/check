@@ -4,6 +4,15 @@
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
+# A laptop that ran `scripts/local-db up` checks against its own local Supabase, which is far faster
+# than the shared cloud project. The live site and `pnpm dev` keep using the cloud project.
+if [ -f local-db.vars ]; then
+  set -a
+  . ./local-db.vars
+  set +a
+  echo "check: using the local database (scripts/local-db down to switch back to the cloud one)"
+fi
+
 # The skeleton step fills these in for the chosen stack.
 # BUILD_COMMAND: lint, types and build.  For example: "pnpm lint && pnpm typecheck && pnpm build"
 # SMOKE_COMMAND: the demo story in a real browser.  For example: "pnpm smoke"
