@@ -1,4 +1,5 @@
-import { Activity, ClipboardCheck, Eye } from "lucide-react";
+import { FeatureSpotlight } from "@/components/feature-spotlight";
+import { Activity, ClipboardCheck, Eye, Fingerprint, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { Pagination } from "@/components/pagination";
 import { paginate } from "@/lib/pagination";
@@ -94,7 +95,17 @@ export default async function ManageExamPage({ params, searchParams }: { params:
         </section>
       )}
 
-      {tab === "papers" && <PapersPanel member={member} exam={exam} />}
+      {tab === "papers" && (
+        <div className="flex flex-col gap-4">
+          <FeatureSpotlight
+            icon={Fingerprint}
+            title="A different paper for every candidate"
+            problem="One leaked paper ruins an exam for everyone, and answers shared on WhatsApp fit every seat."
+            answer="The AI writes equal-difficulty versions of each question, each one solved again without the key before it is used. Every candidate sits a different mix, so a leaked paper or a shared answer fits nobody else."
+          />
+          <PapersPanel member={member} exam={exam} />
+        </div>
+      )}
 
       {tab === "candidates" && <EnrollmentPanel examId={exam.id} view={await getEnrollment(member, exam.id)} canEdit={canEdit} pages={{ enrolled: search.epage, others: search.npage }} />}
 
@@ -111,6 +122,12 @@ async function ReviewTab({ member, exam, canEdit, startedCount }: { member: Memb
   const review = await loadReview(member, exam);
   return (
     <div className="flex flex-col gap-4">
+      <FeatureSpotlight
+        icon={ShieldCheck}
+        title="Nothing broken reaches a candidate"
+        problem="Papers get cancelled for wrong totals, missing keys and out-of-syllabus questions found only on exam day."
+        answer="Publishing stays locked until every check passes, and the AI moderator below solves each question without the key, so a wrong key shows up before the exam, not after."
+      />
       <ReviewPanel exam={exam} questions={review.questions} checklist={runChecklist(review)} canEdit={canEdit} startedCount={startedCount} />
       <ModeratorPanel examId={exam.id} moderation={readModeration(exam)} canEdit={canEdit && exam.status === "draft"} />
     </div>

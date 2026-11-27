@@ -1,3 +1,5 @@
+import { Scale } from "lucide-react";
+import { FeatureSpotlight } from "@/components/feature-spotlight";
 import { PageHeader } from "@/components/page-header";
 import { StatusDot } from "@/components/status-dot";
 import { requireMember } from "@/lib/access";
@@ -18,6 +20,12 @@ export default async function DisputePage({ params }: { params: Promise<{ disput
   return (
     <div className="flex max-w-3xl flex-col gap-4">
       <PageHeader back={{ href: "/disputes", label: "Disputes" }} title={`Challenge on Q${dispute.position}`} description={`${dispute.examTitle} · Roll ${dispute.roll}`} />
+      <FeatureSpotlight
+        icon={Scale}
+        title="A challenge is a real re-read"
+        problem="Paper rechecking costs candidates money and only re-counts the totals."
+        answer="Here a challenge is free, can only raise a mark, and every change becomes a new result version with its reason, visible to the candidate and in the audit log."
+      />
       <section className="flex flex-col gap-3 rounded-3xl bg-card p-4 md:p-6">
         <h2 className="text-xl font-medium">The question</h2>
         <p className="text-base font-medium">{dispute.question.body}</p>
