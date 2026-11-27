@@ -1,7 +1,7 @@
 # Hackathon project
 
-- Product: not chosen yet (`/shape` fills this in)
-- Stack: not chosen yet (`/shape` fills this in)
+- Product: Imtihaan, online exams that survive load-shedding, leaked papers and wrong answer keys
+- Stack: Next.js 16, Supabase, Vercel
 - Live URL: not deployed yet (`/shape` fills this in)
 
 Two people build this in one day: Waqar and Umar, each with their own Claude Code. Each person owns one slice of the product from top to bottom. The goal is a demo that works on the live URL when the clock ends, and that a judge remembers.
