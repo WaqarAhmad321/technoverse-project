@@ -29,6 +29,9 @@ function clampToHalfSteps(value: number, max: number): number {
 
 // Recorded answer for demo mode and the check: credits the first rubric line only, so the gap rule is visible.
 function recordedMark(item: WrittenToMark): AiMark {
+  if (!item.answer.trim()) {
+    return { lines: [], marks_awarded: 0, summary: "No answer given, so nothing earns marks." };
+  }
   const awarded = clampToHalfSteps(item.marks / 2, item.marks);
   const firstWords = item.answer.split(/\s+/).slice(0, 8).join(" ");
   return {

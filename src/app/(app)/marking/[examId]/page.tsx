@@ -1,3 +1,4 @@
+import { ClipboardCheck } from "lucide-react";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/states";
@@ -42,7 +43,7 @@ function MarkingTabs({ examId, current, labels }: { examId: string; current: Tab
   );
 }
 
-export default async function MarkingPage({ params, searchParams }: { params: Promise<{ examId: string }>; searchParams: Promise<{ tab?: string }> }) {
+export default async function MarkingPage({ params, searchParams }: { params: Promise<{ examId: string }>; searchParams: Promise<{ tab?: string; page?: string }> }) {
   const member = await requireMember("examiner", "institution_admin");
   const [{ examId }, search] = await Promise.all([params, searchParams]);
   const exam = await getExam(member, examId);
@@ -77,7 +78,7 @@ export default async function MarkingPage({ params, searchParams }: { params: Pr
       >
         <form action={markObjectiveAnswers.bind(null, exam.id)}>
           <SubmitButton size="lg" variant="outline">
-            Mark objective answers again
+            <ClipboardCheck aria-hidden /> Mark objective answers again
           </SubmitButton>
         </form>
       </PageHeader>
@@ -113,10 +114,10 @@ export default async function MarkingPage({ params, searchParams }: { params: Pr
                 )}
               </section>
               {summary && <SummarySection summary={summary} maxTotal={exam.total_marks} />}
-              <ResultsTable scores={scores} />
+              <ResultsTable examId={exam.id} scores={scores} page={search.page} />
             </>
           )}
-          {tab === "analytics" && <AnalyticsSection rows={doctor.analytics} />}
+          {tab === "analytics" && <AnalyticsSection examId={exam.id} rows={doctor.analytics} page={search.page} />}
         </>
       )}
     </div>

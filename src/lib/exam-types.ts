@@ -9,6 +9,18 @@ export type MultipleRule = "all_or_nothing" | "partial";
 export type QuestionOption = { id: string; text: string };
 export type AnswerKey = string[];
 
+// An AI-written version of a question: same idea and difficulty, different situation, numbers and options.
+// Only approved versions written for the question's current version reach a paper.
+export type QuestionVariant = {
+  key: string;
+  body: string;
+  options: QuestionOption[];
+  answer_key: AnswerKey;
+  status: "proposed" | "approved";
+  source_version: number;
+  solves: AnswerKey[];
+};
+
 export type Profile = {
   id: string;
   display_name: string;
@@ -54,6 +66,7 @@ export type Question = InInstitution & {
   multiple_rule: MultipleRule;
   rubric: string | null;
   version: number;
+  variants: QuestionVariant[];
 };
 
 export type Exam = InInstitution & {
@@ -104,6 +117,7 @@ export type AttemptQuestion = InInstitution & {
   rubric: string | null;
   options: QuestionOption[];
   answer_key: AnswerKey | null;
+  variant_key: string | null;
 };
 
 export type AnswerResponse = { choices?: string[]; text?: string };

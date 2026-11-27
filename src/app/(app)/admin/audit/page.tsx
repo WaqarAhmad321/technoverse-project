@@ -17,6 +17,12 @@ const ACTION_LABELS: Record<string, string> = {
   "results.published": "Published results",
   "announcement.sent": "Sent an announcement",
   "credit.granted": "Gave time back after an outage",
+  "approval.requested": "Sent for the controller's approval",
+  "approval.decided": "Controller decided on an approval",
+  "exam.quarantined": "Quarantined leaked questions",
+  "exam.unpublished": "Unpublished an exam",
+  "results.republished": "Issued updated results",
+  "dispute.decided": "Decided a candidate's challenge",
 };
 
 function describe(action: string, payload: Record<string, unknown>): string {
