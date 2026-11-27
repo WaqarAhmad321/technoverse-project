@@ -84,7 +84,12 @@ export async function loadQuestionPreviews(examId: string, institutionId: string
     .sort((a, b) => a.position - b.position);
 }
 
-export type MonitorRow = { candidate: Candidate; attempt: CandidateAttempt | null; answeredCount: number };
+export type MonitorRow = {
+  candidate: Candidate;
+  attempt: CandidateAttempt | null;
+  answeredCount: number;
+  signals: { kind: string; details: Record<string, unknown>; occurred_at: string }[];
+};
 
 export async function loadExamForStaff(member: Member, examId: string): Promise<Exam> {
   const exam: Exam | null = unwrap(
@@ -110,10 +115,19 @@ export async function loadMonitorRows(member: Member, examId: string): Promise<M
       .eq("is_sandbox", false)
       .then(unwrap),
   ]);
-  const answers: { attempt_id: string }[] =
-    attempts.length === 0
-      ? []
-      : unwrap(await db().from("answers").select("attempt_id").in("attempt_id", attempts.map((attempt) => attempt.id)));
+  const attemptIds = attempts.map((attempt) => attempt.id);
+  const [answers, incidents]: [{ attempt_id: string }[], { attempt_id: string; kind: string; details: Record<string, unknown>; occurred_at: string }[]] =
+    attemptIds.length === 0
+      ? [[], []]
+      : await Promise.all([
+          db().from("answers").select("attempt_id").in("attempt_id", attemptIds).then(unwrap),
+          db()
+            .from("incidents")
+            .select("attempt_id, kind, details, occurred_at")
+            .in("attempt_id", attemptIds)
+            .order("occurred_at", { ascending: false })
+            .then(unwrap),
+        ]);
 
   return candidates.map((candidate) => {
     const attempt = attempts.find((row) => row.candidate_id === candidate.id) ?? null;
@@ -121,6 +135,7 @@ export async function loadMonitorRows(member: Member, examId: string): Promise<M
       candidate,
       attempt,
       answeredCount: attempt ? answers.filter((answer) => answer.attempt_id === attempt.id).length : 0,
+      signals: attempt ? incidents.filter((incident) => incident.attempt_id === attempt.id) : [],
     };
   });
 }
@@ -225,4 +240,63 @@ export async function verifyResult(code: string): Promise<VerifiedResult | null>
     publishedAt: result.published_at,
     supersededBy: latest?.published_at ? { version: latest.version, publishedAt: latest.published_at } : null,
   };
+}
+
+export type ResultQuestion = {
+  position: number;
+  questionId: string;
+  body: string;
+  kind: string;
+  marks: number;
+  marksAwarded: number;
+  yourAnswer: string;
+  correctAnswer: string;
+  keyFixNote: string | null;
+};
+
+const KEY_FIX_NOTES: Record<string, string> = {
+  change_key: "The answer key was corrected; your mark was updated.",
+  accept_both: "More than one answer was accepted for this question.",
+  full_marks: "Everyone received full marks for this question.",
+  drop: "This question was removed from the total.",
+};
+
+// Shown only for a published result, so the correct answers are safe to reveal here.
+export async function loadResultQuestions(result: Result): Promise<ResultQuestion[]> {
+  const [paper, answers, fixes]: [
+    { question_id: string; position: number; body: string; kind: string; marks: number; options: { id: string; text: string }[]; answer_key: string[] | null }[],
+    { question_id: string; response: { choices?: string[]; text?: string } }[],
+    { question_id: string; decision: string; new_key: string[] | null }[],
+  ] = await Promise.all([
+    db()
+      .from("attempt_questions")
+      .select("question_id, position, body, kind, marks, options, answer_key")
+      .eq("attempt_id", result.attempt_id)
+      .then(unwrap),
+    db().from("answers").select("question_id, response").eq("attempt_id", result.attempt_id).then(unwrap),
+    db().from("key_fixes").select("question_id, decision, new_key").eq("exam_id", result.exam_id).then(unwrap),
+  ]);
+
+  const optionText = (options: { id: string; text: string }[], ids: string[] | null | undefined) =>
+    (ids ?? []).map((id) => options.find((option) => option.id === id)?.text ?? id).join(", ");
+
+  return paper
+    .map((question) => {
+      const answer = answers.find((row) => row.question_id === question.question_id);
+      const fix = fixes.find((row) => row.question_id === question.question_id);
+      const line = result.breakdown.find((row) => row.question_id === question.question_id);
+      return {
+        position: line?.position ?? question.position,
+        questionId: question.question_id,
+        body: question.body,
+        kind: question.kind,
+        marks: question.marks,
+        marksAwarded: line?.marks_awarded ?? 0,
+        yourAnswer:
+          question.kind === "written" ? (answer?.response.text ?? "") : optionText(question.options, answer?.response.choices),
+        correctAnswer: question.kind === "written" ? "" : optionText(question.options, fix?.new_key ?? question.answer_key),
+        keyFixNote: fix ? (KEY_FIX_NOTES[fix.decision] ?? null) : null,
+      };
+    })
+    .sort((a, b) => a.position - b.position);
 }

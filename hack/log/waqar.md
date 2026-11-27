@@ -6,3 +6,4 @@
 13:50 shared: memberOrNull() in src/lib/access.ts for route handlers; smoke fixture `world` gives an examiner page plus that institution's Ayesha on candidatePage, accounts made once per worker
 13:50 note: the smoke test now takes about 2 minutes, mostly account setup against the remote database
 14:18 shared: smoke waits raised (expect 12s, test 90s) in playwright.config.ts: every save is several round trips to the remote database
+14:40 decided: result PDF is built on the server with pdf-lib and qrcode; standard fonts, so non-Latin characters are dropped from the PDF

@@ -1,5 +1,13 @@
 # Verification: proof, at hackathon speed
 
+## Speed first (team decision, 14:20)
+Time is short. These lines override anything slower below and the review step in `/next`:
+- No reviewer agent runs. Skip `review: yes`; re-read your own diff once instead.
+- Tests stay short: at most one browser step per demo-story step, written in a few lines. No tests for edge cases.
+- Handle only the edge cases the demo or a judge would hit: wrong role or URL, a double click, an empty form, offline in the exam. Nothing exhaustive.
+- Batch two or three finished tasks into one landing, so the slow check runs less often.
+- Do still click through the "Done when" once in a real browser before landing.
+
 A feature that was never run does not exist. A demo that breaks in front of the judges costs more than a missing feature.
 
 ## Every task

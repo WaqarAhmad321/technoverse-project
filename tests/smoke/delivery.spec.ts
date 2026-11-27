@@ -48,7 +48,9 @@ test("a candidate sees only her published results, and anyone can verify one", a
   await candidatePage.goto("/results");
   await candidatePage.getByRole("link", { name: /Physics Pre-test/ }).click();
   await expect(candidatePage.getByRole("heading", { level: 1 })).toHaveText("Physics Pre-test");
-  const verifyCode = (await candidatePage.getByText(/^[A-Z0-9]{10}$/).textContent()) ?? "";
+  const verifyCode = (await candidatePage.locator("span.font-mono").first().textContent()) ?? "";
+  const pdf = await candidatePage.request.get(`${new URL(candidatePage.url()).pathname}/pdf`);
+  expect(pdf.headers()["content-type"]).toBe("application/pdf");
 
   await candidatePage.goto("/admin/people");
   await expect(candidatePage.getByRole("heading", { name: "This page does not exist" })).toBeVisible();
@@ -56,6 +58,9 @@ test("a candidate sees only her published results, and anyone can verify one", a
   await page.goto("/monitor");
   await page.getByRole("link", { name: /Waves Practice Quiz/ }).click();
   await expect(page.getByRole("cell", { name: "Ayesha Khan" })).toBeVisible();
+  await page.getByLabel("Message").fill("Q2: take the speed of sound as 340 m/s.");
+  await page.getByRole("button", { name: "Send announcement" }).click();
+  await expect(page.getByText("Sent. Candidates see it within a few seconds.")).toBeVisible();
 
   const visitor = await page.context().browser()?.newPage();
   if (!visitor) throw new Error("Could not open a signed-out page.");
