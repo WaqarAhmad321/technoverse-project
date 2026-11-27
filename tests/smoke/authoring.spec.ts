@@ -68,3 +68,34 @@ test("an examiner creates an exam and builds its paper from the bank", async ({ 
   await page.goto("/manage");
   await expect(page.getByRole("link", { name: /Physics Final/ })).toContainText("Draft");
 });
+
+test("an examiner adds a candidate to the roster and enrolls them", async ({ page, account }) => {
+  test.setTimeout(90_000);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(account.name);
+  await page.goto("/roster");
+  await page.getByText("Add candidate").first().click();
+
+  const fillCandidate = async (roll: string, cnic: string) => {
+    await page.getByLabel("Full name").fill("Hamza Riaz");
+    await page.getByLabel("Roll number").fill(roll);
+    await page.getByLabel("Email").fill("Hamza.Riaz@example.pk");
+    await page.getByLabel("CNIC").fill(cnic);
+    await page.getByRole("button", { name: "Add candidate" }).click();
+  };
+
+  await fillCandidate("0245", "35202-123");
+  await expect(page.getByText("CNIC must have 13 digits")).toBeVisible();
+  await fillCandidate("0231", "35202-1234567-3");
+  await expect(page.getByText("Roll number 0231 is already on the roster.")).toBeVisible({ timeout: 15_000 });
+  await fillCandidate("0245", "35202-1234567-3");
+  await expect(page.getByText("Hamza Riaz is on the roster.")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("list", { name: "Roster" })).toContainText("hamza.riaz@example.pk");
+  await expect(page.getByRole("list", { name: "Roster" })).toContainText("35202-•••••••-3");
+
+  await page.goto("/manage");
+  await page.getByRole("link", { name: /Physics Midterm/ }).click();
+  await page.getByRole("link", { name: "Candidates" }).click();
+  await expect(page.getByRole("heading", { name: "31 enrolled" })).toBeVisible();
+  await page.getByRole("button", { name: "Enroll Hamza Riaz" }).click();
+  await expect(page.getByRole("heading", { name: "32 enrolled" })).toBeVisible({ timeout: 15_000 });
+});

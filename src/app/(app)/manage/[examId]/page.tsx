@@ -6,6 +6,8 @@ import { examPhase } from "@/lib/exam-rules";
 import type { Difficulty, Exam } from "@/lib/exam-types";
 import { updateExam } from "@/features/authoring/exams/actions";
 import { countStartedAttempts, getExam, listExamQuestions } from "@/features/authoring/exams/data";
+import { getEnrollment } from "@/features/authoring/exams/enrollment-data";
+import { EnrollmentPanel } from "@/features/authoring/exams/enrollment-panel";
 import { ExamForm } from "@/features/authoring/exams/exam-form";
 import { ExamTabs, parseExamTab } from "@/features/authoring/exams/exam-tabs";
 import { BankPicker, MarksTotal, PaperList } from "@/features/authoring/exams/paper-editor";
@@ -73,6 +75,8 @@ export default async function ManageExamPage({ params, searchParams }: { params:
           <ExamForm action={updateExam.bind(null, exam.id)} values={formValues(exam)} submitLabel="Save details" lockedReason={locked} canEdit={canEdit} />
         </section>
       )}
+
+      {tab === "candidates" && <EnrollmentPanel examId={exam.id} view={await getEnrollment(member, exam.id)} canEdit={canEdit} />}
 
       {tab === "questions" && (
         <QuestionsTab member={member} exam={exam} search={search} isEditable={canEdit && !locked} locked={locked} paper={paper} />

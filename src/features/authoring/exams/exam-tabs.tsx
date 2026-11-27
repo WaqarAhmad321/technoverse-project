@@ -3,6 +3,7 @@ import Link from "next/link";
 export const EXAM_TABS = [
   { id: "details", label: "Details" },
   { id: "questions", label: "Questions" },
+  { id: "candidates", label: "Candidates" },
 ] as const;
 
 export type ExamTab = (typeof EXAM_TABS)[number]["id"];
