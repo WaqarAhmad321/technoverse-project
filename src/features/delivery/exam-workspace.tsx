@@ -2,7 +2,7 @@
 
 // Rendered only in the browser (see exam-workspace-loader): it reads answers kept on this phone at start.
 
-import { Check, CircleAlert, Clock, Eye, Flag, Megaphone, WifiOff } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, CircleAlert, Clock, Eye, Flag, Megaphone, NotebookPen, Send, WifiOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,11 @@ import { cn } from "@/lib/utils";
 import { clearAttemptStorage, loadQueue, nextSeq, storeQueue, type AnswerQueue, type QueuedAnswer } from "./answer-queue";
 import { savePreferences } from "./actions";
 import type { PaperQuestion, SavedAnswer } from "./attempts";
-import { DisplaySettings, FONT_ZOOM, type WorkspacePrefs } from "./display-settings";
+import { FONT_ZOOM, type WorkspacePrefs } from "./display-settings";
+import { DisplayMenu } from "./display-menu";
+import { decodeRoughWork, encodeRoughWork, type RoughWork } from "./rough-work";
+import { RoughWorkDrawer } from "./rough-work-drawer";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { QuestionCard, type AnswerState } from "./question-card";
 import { VoiceShortcuts } from "@/components/voice-controls";
 
@@ -115,6 +119,8 @@ export function ExamWorkspace(props: WorkspaceProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitProblem, setSubmitProblem] = useState<string | null>(null);
   const [prefs, setPrefs] = useState<WorkspacePrefs>(props.preferences);
+  const [roughWork, setRoughWork] = useState<Record<string, string>>(props.scratch);
+  const [isRoughOpen, setIsRoughOpen] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
   const [roundTripMs, setRoundTripMs] = useState<number | null>(null);
   const scratchTimers = useRef<Record<string, number>>({});
@@ -285,6 +291,12 @@ export function ExamWorkspace(props: WorkspaceProps) {
     scheduleFlush();
   }
 
+  function recordRoughWork(questionId: string, work: RoughWork) {
+    const body = encodeRoughWork(work);
+    setRoughWork((current) => ({ ...current, [questionId]: body }));
+    recordScratch(questionId, body);
+  }
+
   function recordScratch(questionId: string, text: string) {
     const key = `imtihaan:scratch:${attemptId}:${questionId}`;
     try {
@@ -371,8 +383,16 @@ export function ExamWorkspace(props: WorkspaceProps) {
   const secondsSinceSave = lastSavedAt === null ? null : Math.round((now - lastSavedAt) / MS_PER_SECOND);
   const isSlow = roundTripMs !== null && roundTripMs > SLOW_ROUND_TRIP_MS;
 
+  const statusLine = [
+    `${answeredCount} of ${paper.length} answered`,
+    secondsSinceSave !== null && isOnline && pendingCount === 0 ? `saved ${secondsSinceSave} s ago` : null,
+    isSlow && isOnline ? "slow connection, saves still arrive" : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
-    <div className={cn("flex flex-col gap-4 pb-28", prefs.contrast === "high" && "high-contrast")}>
+    <div className={cn("flex flex-col gap-4", prefs.contrast === "high" && "high-contrast")}>
       {props.isPreview && (
         <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-3xl bg-secondary px-4 py-3">
           <span className="flex items-center gap-2 text-base">
@@ -382,14 +402,59 @@ export function ExamWorkspace(props: WorkspaceProps) {
           {props.restartPreview}
         </div>
       )}
-      <DisplaySettings prefs={prefs} onChange={changePrefs} />
+
+      <header className="sticky top-3 z-20 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-3xl bg-card/95 px-4 py-3 shadow-sm backdrop-blur-sm md:px-5">
+        <div className="flex min-w-0 flex-1 flex-col">
+          <span className="truncate text-base font-medium">{examTitle}</span>
+          <span className="text-sm text-muted-foreground">
+            Question {question.position} of {paper.length}
+          </span>
+        </div>
+        <div className="flex flex-col items-end" aria-live="polite">
+          <SaveStatus isOnline={isOnline} isSending={isSending} pendingCount={pendingCount} />
+        </div>
+        <span
+          className={cn(
+            "flex items-center gap-1.5 rounded-full bg-muted px-3 py-1.5 font-mono text-lg tabular-nums",
+            isLowTime && "bg-destructive/15 text-destructive",
+          )}
+          role="timer"
+          aria-label={`${formatRemaining(remainingMs)} left`}
+        >
+          <Clock aria-hidden className="size-4" />
+          {formatRemaining(remainingMs)}
+        </span>
+        <div className="flex items-center gap-1">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button type="button" variant="ghost" size="icon" className="size-10" aria-label="Rough work" onClick={() => setIsRoughOpen(true)}>
+                <NotebookPen aria-hidden className="size-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Rough work for this question</TooltipContent>
+          </Tooltip>
+          <DisplayMenu prefs={prefs} onChange={changePrefs} />
+          <Button type="button" className="ml-1" onClick={() => setIsReviewOpen(true)}>
+            <Send aria-hidden className="size-4" />
+            Finish exam
+          </Button>
+        </div>
+      </header>
+
+      {creditSeconds > 0 && (
+        <p role="status" className="flex items-center gap-2 rounded-3xl bg-card px-4 py-3 text-base">
+          <Clock aria-hidden className="size-4 text-primary" />
+          {formatRemaining(creditSeconds * MS_PER_SECOND)} added because your connection dropped.
+        </p>
+      )}
+
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start" style={{ zoom: FONT_ZOOM[prefs.font_scale] }}>
         <div className="flex min-w-0 flex-1 flex-col gap-4">
           {announcements.length > 0 && (
-            <section aria-label="Announcements" aria-live="polite" className="flex flex-col gap-2 rounded-3xl bg-card p-4 md:p-6">
+            <section aria-label="Announcements" aria-live="polite" className="flex flex-col gap-2 rounded-3xl bg-primary/10 p-4 md:px-6">
               {announcements.map((item) => (
                 <p key={item.id} className="flex items-start gap-2 text-base">
-                  <Megaphone aria-hidden className="mt-1 size-4 shrink-0 text-muted-foreground" />
+                  <Megaphone aria-hidden className="mt-1 size-4 shrink-0 text-primary" />
                   <span>
                     {item.question_position ? <span className="font-medium">Q{item.question_position}: </span> : null}
                     {item.body}
@@ -406,32 +471,39 @@ export function ExamWorkspace(props: WorkspaceProps) {
               question={item}
               total={paper.length}
               state={stateOf(item.question_id)}
-              scratch={props.scratch[item.question_id] ?? ""}
               onAnswer={(next) => record(item.question_id, next)}
-              onScratch={(text) => recordScratch(item.question_id, text)}
               onPaste={(chars) => chars > 0 && sendSignal({ kind: "paste", chars })}
             />
           ))}
+
+          <div className="sticky bottom-3 z-20 flex items-center justify-between gap-3 rounded-full bg-card/95 p-2 pl-5 shadow-sm backdrop-blur-sm">
+            <span className="hidden text-sm text-muted-foreground sm:inline">{statusLine}</span>
+            <div className="flex gap-2">
+              <Button type="button" variant="ghost" disabled={index === 0} onClick={() => goToQuestion(index - 1, paper[index - 1]?.position ?? 1)}>
+                <ChevronLeft aria-hidden className="size-4" />
+                Previous
+              </Button>
+              {index < paper.length - 1 ? (
+                <Button type="button" onClick={() => goToQuestion(index + 1, paper[index + 1]?.position ?? 1)}>
+                  Next
+                  <ChevronRight aria-hidden className="size-4" />
+                </Button>
+              ) : (
+                <Button type="button" onClick={() => setIsReviewOpen(true)}>
+                  Finish exam
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
 
-        <aside aria-label="Questions and time" className="flex flex-col gap-4 rounded-3xl bg-card p-4 lg:sticky lg:top-20 lg:w-72">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-sm text-muted-foreground">Time left</span>
-            <span
-              className={cn("flex items-center gap-1.5 font-mono text-xl tabular-nums", isLowTime && "text-destructive")}
-              role="timer"
-              aria-label={`${formatRemaining(remainingMs)} left`}
-            >
-              {isLowTime && <Clock aria-hidden className="size-5" />}
-              {formatRemaining(remainingMs)}
+        <aside aria-label="Question navigator" className="flex flex-col gap-4 rounded-3xl bg-card p-5 lg:sticky lg:top-28 lg:w-72">
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-base font-medium">Questions</h2>
+            <span className="text-sm text-muted-foreground">
+              {answeredCount}/{paper.length} answered
             </span>
           </div>
-          {creditSeconds > 0 && (
-            <p role="status" className="text-sm">
-              {formatRemaining(creditSeconds * MS_PER_SECOND)} added because your connection dropped.
-            </p>
-          )}
-          <p className="text-sm text-muted-foreground">{examTitle}</p>
           <nav aria-label="Question navigator">
             <ol className="grid grid-cols-5 gap-2">
               {paper.map((item, itemIndex) => {
@@ -447,8 +519,8 @@ export function ExamWorkspace(props: WorkspaceProps) {
                       aria-current={isCurrent ? "step" : undefined}
                       onClick={() => goToQuestion(itemIndex, item.position)}
                       className={cn(
-                        "relative flex size-11 items-center justify-center rounded-full text-sm font-medium transition-colors duration-200 ease-out focus-visible:ring-3 focus-visible:ring-ring focus-visible:outline-none",
-                        answered ? "bg-primary/15 text-foreground" : "bg-muted text-muted-foreground",
+                        "relative flex size-11 items-center justify-center rounded-full text-sm font-medium transition-colors duration-200 ease-out hover:ring-2 hover:ring-primary/40 focus-visible:ring-3 focus-visible:ring-ring focus-visible:outline-none",
+                        answered ? "bg-primary/20 text-foreground" : "bg-muted text-muted-foreground",
                         isCurrent && "bg-primary text-primary-foreground",
                       )}
                     >
@@ -460,38 +532,30 @@ export function ExamWorkspace(props: WorkspaceProps) {
               })}
             </ol>
           </nav>
-          <p className="text-sm text-muted-foreground">
-            Answered, filled · Not answered, grey · <Flag aria-hidden className="inline size-3.5" /> marked for review
-          </p>
+          <ul className="flex flex-col gap-1.5 text-sm text-muted-foreground" aria-label="What the colours mean">
+            <li className="flex items-center gap-2">
+              <span aria-hidden className="size-3 rounded-full bg-primary/20" />
+              Answered
+            </li>
+            <li className="flex items-center gap-2">
+              <span aria-hidden className="size-3 rounded-full bg-muted ring-1 ring-border" />
+              Not answered yet
+            </li>
+            <li className="flex items-center gap-2">
+              <Flag aria-hidden className="size-3" />
+              Marked for review
+            </li>
+          </ul>
         </aside>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 bg-card/95 shadow-sm backdrop-blur-sm">
-        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 md:px-8">
-          <div className="flex flex-col gap-0.5" aria-live="polite">
-            <SaveStatus isOnline={isOnline} isSending={isSending} pendingCount={pendingCount} />
-            <span className="text-sm text-muted-foreground">
-              {answeredCount} of {paper.length} answered
-              {secondsSinceSave !== null && isOnline && pendingCount === 0 ? ` · last saved ${secondsSinceSave} s ago` : ""}
-              {isSlow && isOnline ? " · slow connection, saves still arrive" : ""}
-            </span>
-          </div>
-          <div className="flex gap-2">
-            <Button type="button" variant="outline" size="lg" disabled={index === 0} onClick={() => setIndex(index - 1)}>
-              Previous
-            </Button>
-            {index < paper.length - 1 ? (
-              <Button type="button" size="lg" onClick={() => setIndex(index + 1)}>
-                Next
-              </Button>
-            ) : (
-              <Button type="button" size="lg" onClick={() => setIsReviewOpen(true)}>
-                Finish exam
-              </Button>
-            )}
-          </div>
-        </div>
-      </div>
+      <RoughWorkDrawer
+        open={isRoughOpen}
+        onOpenChange={setIsRoughOpen}
+        questionLabel={`Question ${question.position}`}
+        work={decodeRoughWork(roughWork[question.question_id])}
+        onChange={(work) => recordRoughWork(question.question_id, work)}
+      />
 
       <Dialog open={isReviewOpen} onOpenChange={setIsReviewOpen}>
         <DialogContent>
