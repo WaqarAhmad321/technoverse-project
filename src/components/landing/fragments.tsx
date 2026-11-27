@@ -48,6 +48,30 @@ export function OfflineFragment() {
   );
 }
 
+const TIME_BACK_OUTCOMES = [
+  { who: "Ayesha kept answering offline", result: "No time added. Her clock ran as normal.", icon: Check },
+  { who: "Hamza could not open the paper for 6 min", result: "6 min credited, waiting for the examiner's approval (over 5 min).", icon: Clock },
+] as const;
+
+export function TimeBackFragment() {
+  return (
+    <Fragment label="Fair time back after the same outage, as the examiner sees it. Sample data.">
+      <p className="text-lg font-medium leading-snug">Power cut at 11:42, back at 11:48</p>
+      <ul className="flex flex-col gap-2">
+        {TIME_BACK_OUTCOMES.map(({ who, result, icon: Icon }) => (
+          <li key={who} className="flex items-start gap-3 rounded-2xl bg-muted/60 p-4">
+            <Icon aria-hidden className="mt-1 size-4 shrink-0 text-muted-foreground" />
+            <div>
+              <p className="text-base font-medium">{who}</p>
+              <p className="text-base text-muted-foreground">{result}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </Fragment>
+  );
+}
+
 const TOP_SCORER_CHOICES = [
   { option: "A", percent: 12, key: false },
   { option: "B", percent: 71, key: false },

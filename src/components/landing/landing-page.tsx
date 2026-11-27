@@ -4,7 +4,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { DemoButtons } from "@/features/auth/demo-buttons";
 import { site } from "@/lib/site";
-import { KeyDoctorFragment, LeakFragment, OfflineFragment } from "./fragments";
+import { KeyDoctorFragment, LeakFragment, OfflineFragment, TimeBackFragment } from "./fragments";
 import { Story } from "./story";
 
 const ROLES = [
@@ -63,7 +63,7 @@ export function LandingPage() {
           incident="Karachi matric candidates sat exams through load-shedding at their centres in April 2025. In Pakistan, 16 internet shutdowns in nine years were triggered by exams."
           source="ARY News, Karachi exam centres"
           sourceHref="https://arynews.tv/karachi-matric-students-disruptions-load-shedding-at-exam-centers"
-          fragment={<OfflineFragment />}
+          fragment={<TimeBackFragment />}
         >
           <p>
             Answers are saved on the candidate&apos;s phone first and sent when the connection returns. A refresh or a dead
