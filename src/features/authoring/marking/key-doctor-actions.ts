@@ -1,15 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { notFound } from "next/navigation";
 import { z } from "zod";
 import { can, requireMember } from "@/lib/access";
-import { recordAudit } from "@/lib/audit";
-import { db, unwrap } from "@/lib/db";
 import { getExam } from "../exams/data";
-import { autoGradeObjective } from "./auto-grade";
-import { listFinishedAttempts } from "./data";
-import { reissueResults } from "./results";
+import { applyKeyFix } from "./key-fix";
 
 export type KeyFixState = { status: "error"; message: string } | null;
 
@@ -29,41 +24,8 @@ export async function fixKey(examId: string, _previous: KeyFixState, formData: F
   if (!parsed.success) return { status: "error", message: parsed.error.issues[0]?.message ?? "Check the fix and try again." };
   const input = parsed.data;
 
-  const snapshot: { answer_key: string[] | null } | null = unwrap(
-    await db()
-      .from("attempt_questions")
-      .select("answer_key, attempt:attempts!inner(exam_id)")
-      .eq("institution_id", member.institution.id)
-      .eq("question_id", input.question_id)
-      .eq("attempt.exam_id", exam.id)
-      .limit(1)
-      .maybeSingle(),
-  );
-  if (!snapshot) notFound();
-  const oldKey = snapshot.answer_key ?? [];
-  const option = input.option ? [input.option] : [];
-  const decision = input.choice === "keep" ? "change_key" : input.choice;
-  const newKey = input.choice === "keep" ? oldKey : input.choice === "change_key" || input.choice === "accept_both" ? option : null;
-  if ((input.choice === "change_key" || input.choice === "accept_both") && option.length === 0) {
-    return { status: "error", message: "Choose the option to accept." };
-  }
-
-  unwrap(
-    await db().from("key_fixes").insert({
-      user_id: member.user.id,
-      institution_id: member.institution.id,
-      exam_id: exam.id,
-      question_id: input.question_id,
-      decision,
-      old_key: oldKey,
-      new_key: newKey,
-      reason: input.reason,
-    }),
-  );
-  await recordAudit(member, "key.fixed", input.question_id, { exam_id: exam.id, decision: input.choice, old_key: oldKey, new_key: newKey, reason: input.reason });
-  const attempts = await listFinishedAttempts(member, exam.id);
-  await autoGradeObjective(member, exam.id, attempts);
-  await reissueResults(member, exam, attempts, input.reason);
+  const problem = await applyKeyFix(member, exam, input);
+  if (problem) return { status: "error", message: problem };
   revalidatePath(`/marking/${exam.id}`);
   return null;
 }
