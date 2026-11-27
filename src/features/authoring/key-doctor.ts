@@ -96,3 +96,36 @@ export function runKeyDoctor(questions: DoctorQuestion[], attempts: DoctorAttemp
   const bottom = ranked.slice(-groupSize);
   return questions.flatMap((question) => diagnose(question, top, bottom, ranked) ?? []);
 }
+
+export type QuestionStats = {
+  question_id: string;
+  position: number;
+  correct: number;
+  discrimination: number;
+  skipped: number;
+  topShares: [string, number][];
+  behaved: "easy" | "medium" | "hard";
+};
+
+const EASY_ABOVE = 0.7;
+const HARD_BELOW = 0.4;
+
+export function questionStats(questions: DoctorQuestion[], attempts: DoctorAttempt[]): QuestionStats[] {
+  const ranked = [...attempts].sort((a, b) => b.total - a.total);
+  const groupSize = Math.max(1, Math.round(ranked.length * GROUP_SHARE));
+  const top = ranked.slice(0, groupSize);
+  const bottom = ranked.slice(-groupSize);
+  return questions.map((question) => {
+    const correct = shareCorrect(ranked, question);
+    const skipped = ranked.length === 0 ? 0 : ranked.filter((attempt) => (attempt.choices.get(question.question_id) ?? []).length === 0).length / ranked.length;
+    return {
+      question_id: question.question_id,
+      position: question.position,
+      correct,
+      discrimination: shareCorrect(top, question) - shareCorrect(bottom, question),
+      skipped,
+      topShares: [...optionShares(top, question)],
+      behaved: correct > EASY_ABOVE ? "easy" : correct < HARD_BELOW ? "hard" : "medium",
+    };
+  });
+}
