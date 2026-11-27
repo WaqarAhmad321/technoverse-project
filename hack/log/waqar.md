@@ -8,3 +8,4 @@
 14:18 shared: smoke waits raised (expect 12s, test 90s) in playwright.config.ts: every save is several round trips to the remote database
 14:40 decided: result PDF is built on the server with pdf-lib and qrcode; standard fonts, so non-Latin characters are dropped from the PDF
 15:00 shared: .high-contrast class in globals.css (candidate display setting); /api/time returns server time
+15:20 decided: time back after an outage trusts the phone's count of answers typed offline; capped at 10% of the exam (exams.settings.credit_cap_pct), over 5 min needs the examiner's approval on the monitor

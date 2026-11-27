@@ -67,7 +67,7 @@ type ExamPlan = {
 };
 
 const STANDARD_INSTRUCTIONS =
-  "Answer every question. Your answers save as you go, and they are kept on your phone if the connection drops. The timer follows the exam server, not your device clock. Multiple-select questions give partial marks: (right choices − wrong choices) ÷ correct choices × marks, never below zero.";
+  "Answer every question. Your answers save as you go, and they are kept on your phone if the connection drops. If an outage stops you from working, you get that time back, up to 10% of the exam. The timer follows the exam server, not your device clock. We note when you leave the exam tab or paste text: these are signals for your examiner to review, never automatic penalties. Multiple-select questions give partial marks: (right choices − wrong choices) ÷ correct choices × marks, never below zero.";
 
 // The Midterm's questions add up to 45 against a total of 50: the publish checklist catches it in demo step 3.
 const EXAMS: ExamPlan[] = [

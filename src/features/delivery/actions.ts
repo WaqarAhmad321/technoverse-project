@@ -7,7 +7,7 @@ import { can, requireMember } from "@/lib/access";
 import { requireUser } from "@/lib/auth";
 import { recordAudit } from "@/lib/audit";
 import { db, unwrap } from "@/lib/db";
-import { restartSandbox, startAttempt } from "./attempts";
+import { approvePendingCredit, restartSandbox, startAttempt } from "./attempts";
 import { loadExamForStaff } from "./data";
 
 export async function startExam(formData: FormData): Promise<void> {
@@ -82,4 +82,19 @@ export async function restartPreview(formData: FormData): Promise<void> {
   if (!examId.success) redirect("/manage");
   await restartSandbox(member, examId.data);
   redirect(`/exams/${examId.data}/take?preview=1`);
+}
+
+const MAX_CREDIT_SECONDS = 60 * 60;
+
+export async function approveCredit(formData: FormData): Promise<void> {
+  const member = await requireMember("examiner", "institution_admin");
+  const parsed = z
+    .object({ attemptId: z.uuid(), examId: z.uuid(), seconds: z.coerce.number().int().min(1).max(MAX_CREDIT_SECONDS) })
+    .safeParse({ attemptId: formData.get("attemptId"), examId: formData.get("examId"), seconds: formData.get("seconds") });
+  if (!parsed.success) return;
+  const exam = await loadExamForStaff(member, parsed.data.examId);
+  if (!can(member, "exam.monitor", exam)) return;
+  await approvePendingCredit(member, parsed.data.attemptId, parsed.data.seconds);
+  await recordAudit(member, "credit.granted", parsed.data.attemptId, { seconds: parsed.data.seconds });
+  revalidatePath(`/monitor/${exam.id}`);
 }

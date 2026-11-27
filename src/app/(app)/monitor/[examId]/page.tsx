@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/states";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AnnouncementForm } from "@/features/delivery/announcement-form";
+import { ApproveCreditButton } from "@/features/delivery/approve-credit-button";
 import { loadAnnouncements } from "@/features/delivery/attempts";
 import { AutoRefresh } from "@/features/delivery/auto-refresh";
 import { loadExamForStaff, loadMonitorRows, loadQuestionPreviews, type MonitorRow } from "@/features/delivery/data";
@@ -21,10 +22,15 @@ function secondsSince(iso: string | null): number | null {
 function signalText(signal: MonitorRow["signals"][number]): string {
   const seconds = typeof signal.details.seconds === "number" ? signal.details.seconds : null;
   const when = formatPkt(signal.occurred_at);
-  if (signal.kind === "offline") return `No connection for ${seconds ?? "?"} s, ${when}`;
+  if (signal.kind === "offline") {
+    const kept = typeof signal.details.answered_offline === "number" && signal.details.answered_offline > 0;
+    return `No connection for ${seconds ?? "?"} s${kept ? ", kept answering offline" : ""}, ${when}`;
+  }
   if (signal.kind === "late_answer") return `Answer arrived after submitting, ${when}`;
   if (signal.kind === "tab_hidden") return `Left the exam tab for ${seconds ?? "?"} s, ${when}`;
-  if (signal.kind === "paste") return `Pasted text into an answer, ${when}`;
+  if (signal.kind === "paste") return `Pasted ${typeof signal.details.chars === "number" ? signal.details.chars : "some"} characters into an answer, ${when}`;
+  if (signal.kind === "time_credited") return `Given ${seconds ?? "?"} s back after an outage, ${when}`;
+  if (signal.kind === "credit_pending") return `Asks for ${seconds ?? "?"} s back after a long outage, ${when}`;
   return `${signal.kind}, ${when}`;
 }
 
@@ -104,6 +110,13 @@ export default async function MonitorPage({ params }: { params: Promise<{ examId
                   </TableCell>
                   <TableCell className="text-sm whitespace-normal text-muted-foreground">
                     {row.signals.length === 0 ? "None" : row.signals.slice(0, 3).map((signal) => <span key={signal.occurred_at} className="block">{signalText(signal)}</span>)}
+                    {row.attempt && row.signals.some((signal) => signal.kind === "credit_pending") && (
+                      <ApproveCreditButton
+                        attemptId={row.attempt.id}
+                        examId={exam.id}
+                        seconds={Number(row.signals.find((signal) => signal.kind === "credit_pending")?.details.seconds ?? 0)}
+                      />
+                    )}
                   </TableCell>
                 </TableRow>
               ))}

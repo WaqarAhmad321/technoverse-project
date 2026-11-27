@@ -14,6 +14,7 @@ export const navItems: NavItem[] = [
   { href: "/results", label: "My results", audience: ["candidate"] },
   { href: "/monitor", label: "Live monitor", audience: ["examiner", "institution_admin"] },
   { href: "/admin/people", label: "People", audience: ["institution_admin"] },
+  { href: "/admin/audit", label: "Audit log", audience: ["institution_admin"] },
   { href: "/platform", label: "Institutions", audience: ["super_admin"] },
 ];
 
