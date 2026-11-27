@@ -61,6 +61,9 @@ export default async function ManageExamPage({ params, searchParams }: { params:
           <Button asChild variant="outline" size="lg">
             <Link href={`/monitor/${exam.id}`}>Live monitor</Link>
           </Button>
+          <Button asChild variant="outline" size="lg">
+            <Link href={`/manage/${exam.id}/leak`}>Trace a leak</Link>
+          </Button>
           {phase === "closed" && (
             <Button asChild variant="outline" size="lg">
               <Link href={`/marking/${exam.id}`}>Open marking</Link>
