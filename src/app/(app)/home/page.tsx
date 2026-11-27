@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { getAccess } from "@/lib/access";
 import { navFor, type NavAudience } from "@/lib/nav";
@@ -13,10 +14,7 @@ export default async function HomePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">Welcome, {firstName}</h1>
-        {access.current && <p className="text-base text-muted-foreground">{access.current.institution.name}</p>}
-      </div>
+      <PageHeader title={`Welcome, ${firstName}`} description={access.current?.institution.name} />
       {access.suspended && (
         <p className="text-base">Your institution is suspended. Ask the platform admin to reactivate it.</p>
       )}

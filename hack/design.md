@@ -92,9 +92,9 @@ Borders: only where a fill cannot do the job (inputs, outlined buttons, table ro
 
 ## Component recipes
 
-Use the shadcn components in `src/components/ui/`; the classes below are what to add.
+Use the shadcn components in `src/components/ui/`. Their base classes already follow this file (pill buttons and tabs, `rounded-xl` inputs and menus, flat `rounded-2xl` cards, `rounded-3xl` dialogs, 56px table rows), so most recipes below need no extra classes.
 
-**Page header**: `flex flex-wrap items-center justify-between gap-4 pb-6`. Title `text-3xl font-medium tracking-tight`, one line of `text-muted-foreground` under it. The page's one main action sits at the right, `Button size="lg"`.
+**Page header**: use `PageHeader` from `@/components/page-header` (title, description, the main action as children). It is `flex flex-wrap items-center justify-between gap-4 pb-6`. Title `text-3xl font-medium tracking-tight`, one line of `text-muted-foreground` under it. The page's one main action sits at the right, `Button size="lg"`.
 
 **Primary button**: `<Button size="lg" className="rounded-full">`; filled `bg-primary text-primary-foreground`, no shadow, no gradient. One per screen. Text is verb plus object.
 
