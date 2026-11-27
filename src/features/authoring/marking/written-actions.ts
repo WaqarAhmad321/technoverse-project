@@ -5,6 +5,9 @@ import { notFound } from "next/navigation";
 import { z } from "zod";
 import { requireMember } from "@/lib/access";
 import { db, unwrap } from "@/lib/db";
+import { getExam } from "../exams/data";
+import { listFinishedAttempts } from "./data";
+import { reissueResults } from "./results";
 
 export type WrittenMarkState = { status: "error"; message: string } | { status: "saved"; message: string } | null;
 
@@ -54,6 +57,10 @@ export async function saveWrittenMark(examId: string, _previous: WrittenMarkStat
         { onConflict: "attempt_id,question_id" },
       ),
   );
+  const exam = await getExam(member, examId);
+  if (exam.results_published_at) {
+    await reissueResults(member, exam, await listFinishedAttempts(member, exam.id), "A written answer was marked");
+  }
   revalidatePath(`/marking/${examId}`);
   return { status: "saved", message: `Saved ${input.marks} of ${row.marks}.` };
 }

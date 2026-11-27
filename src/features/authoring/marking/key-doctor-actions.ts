@@ -9,6 +9,7 @@ import { db, unwrap } from "@/lib/db";
 import { getExam } from "../exams/data";
 import { autoGradeObjective } from "./auto-grade";
 import { listFinishedAttempts } from "./data";
+import { reissueResults } from "./results";
 
 export type KeyFixState = { status: "error"; message: string } | null;
 
@@ -60,7 +61,9 @@ export async function fixKey(examId: string, _previous: KeyFixState, formData: F
     }),
   );
   await recordAudit(member, "key.fixed", input.question_id, { exam_id: exam.id, decision: input.choice, old_key: oldKey, new_key: newKey, reason: input.reason });
-  await autoGradeObjective(member, exam.id, await listFinishedAttempts(member, exam.id));
+  const attempts = await listFinishedAttempts(member, exam.id);
+  await autoGradeObjective(member, exam.id, attempts);
+  await reissueResults(member, exam, attempts, input.reason);
   revalidatePath(`/marking/${exam.id}`);
   return null;
 }
