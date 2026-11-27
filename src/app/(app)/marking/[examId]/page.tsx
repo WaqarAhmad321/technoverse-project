@@ -6,11 +6,13 @@ import { examPhase } from "@/lib/exam-rules";
 import { getExam } from "@/features/authoring/exams/data";
 import { markObjectiveAnswers } from "@/features/authoring/marking/actions";
 import { autoGradeObjective } from "@/features/authoring/marking/auto-grade";
-import { listFinishedAttempts, objectiveTotals } from "@/features/authoring/marking/data";
+import { listFinishedAttempts } from "@/features/authoring/marking/data";
 import { fixKey } from "@/features/authoring/marking/key-doctor-actions";
 import { KeyDoctorCard } from "@/features/authoring/marking/key-doctor-card";
 import { loadKeyDoctor, type KeyDoctorView } from "@/features/authoring/marking/key-doctor-data";
-import { Button } from "@/components/ui/button";
+import { PublishForm } from "@/features/authoring/exams/publish-form";
+import { publishResults } from "@/features/authoring/marking/results-actions";
+import { computeScores, summarize, type ExamSummary, type ScoreRow } from "@/features/authoring/marking/results";
 import { saveWrittenMark } from "@/features/authoring/marking/written-actions";
 import { loadWrittenQueue, type WrittenQueue } from "@/features/authoring/marking/written-data";
 import { WrittenForm } from "@/features/authoring/marking/written-form";
@@ -23,12 +25,14 @@ export default async function MarkingPage({ params }: { params: Promise<{ examId
   const attempts = await listFinishedAttempts(member, exam.id);
   // Opening a closed exam marks its objective answers, so the examiner never starts from a blank sheet.
   const progress = examPhase(exam) === "closed" ? await autoGradeObjective(member, exam.id, attempts) : null;
-  const [totals, queue, doctor] = await Promise.all([
-    objectiveTotals(member, attempts.map((attempt) => attempt.id)),
+  const [queue, doctor] = await Promise.all([
     loadWrittenQueue(member, attempts),
     loadKeyDoctor(member, exam.id, attempts),
   ]);
   const flagged = doctor.open.length;
+  const scores = await computeScores(member, exam, attempts);
+  const summary = summarize(scores, exam.total_marks);
+  const unmarked = queue.total - queue.marked;
 
   return (
     <div className="flex flex-col gap-4">
@@ -46,40 +50,33 @@ export default async function MarkingPage({ params }: { params: Promise<{ examId
         </p>
       )}
       {attempts.length > 0 && <KeyDoctorSection examId={exam.id} doctor={doctor} />}
-      {attempts.length > 0 && (
-        <div className="flex flex-wrap items-center gap-3">
-          {/* STAND-IN(umar): task 090 turns this into the real publish action. */}
-          <Button size="lg" disabled={flagged > 0 || queue.next !== null}>
-            Publish results
-          </Button>
-          <p className="text-base text-muted-foreground">
-            {flagged > 0
-              ? `Resolve ${plural(flagged, "flagged question")} before publishing.`
-              : queue.next
-                ? "Mark every written answer before publishing."
-                : "Ready to publish."}
-          </p>
-        </div>
-      )}
+      {attempts.length > 0 &&
+        (exam.results_published_at ? (
+          <p className="text-base">Results published {formatPakistanTime(exam.results_published_at)}. Candidates can see their own.</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+          {flagged === 0 && unmarked > 0 && (
+            <p className="text-base text-muted-foreground">
+              {plural(unmarked, "written answer")} still unmarked. They count as 0 until marked; marking one later issues a new result version.
+            </p>
+          )}
+          <PublishForm
+            action={publishResults.bind(null, exam.id)}
+            label="Publish results"
+            variant="default"
+            isBlocked={flagged > 0}
+            blockedReason={`Resolve ${plural(flagged, "flagged question")} before publishing.`}
+          />
+          </div>
+        ))}
       {queue.total > 0 && <WrittenQueueSection examId={exam.id} queue={queue} />}
       {attempts.length === 0 ? (
         <EmptyState message="Nobody has submitted this exam yet. Submitted attempts appear here for marking." />
       ) : (
-        <ul aria-label="Attempts" className="flex flex-col rounded-3xl bg-card p-2 md:p-4">
-          {attempts.map((attempt) => (
-            <li key={attempt.id} className="flex min-h-14 items-center justify-between gap-4 border-b border-border px-3 last:border-0">
-              <span className="flex min-w-0 flex-col">
-                <span className="text-base">{attempt.candidate?.full_name ?? "Unknown candidate"}</span>
-                <span className="text-sm text-muted-foreground">
-                  Roll {attempt.candidate?.roll_number} · {attempt.submitted_at ? formatPakistanTime(attempt.submitted_at) : "auto-submitted"}
-                </span>
-              </span>
-              <span className="shrink-0 text-base tabular-nums">
-                {totals.has(attempt.id) ? `${totals.get(attempt.id)} objective marks` : "Not marked"}
-              </span>
-            </li>
-          ))}
-        </ul>
+        <>
+          {summary && <SummarySection summary={summary} maxTotal={exam.total_marks} />}
+          <ResultsTable scores={scores} />
+        </>
       )}
     </div>
   );
@@ -135,5 +132,60 @@ function KeyDoctorSection({ examId, doctor }: { examId: string; doctor: KeyDocto
         </ul>
       )}
     </section>
+  );
+}
+
+const PERCENT = 100;
+
+function SummarySection({ summary, maxTotal }: { summary: ExamSummary; maxTotal: number }) {
+  const tallest = Math.max(1, ...summary.buckets);
+  const stats = [
+    ["Submitted", String(summary.count)],
+    ["Average", `${summary.average} / ${maxTotal}`],
+    ["Median", String(summary.median)],
+    ["Highest", String(summary.highest)],
+    ["Lowest", String(summary.lowest)],
+    ["Passed (33%)", `${Math.round(summary.passRate * PERCENT)}%`],
+  ];
+  return (
+    <section aria-labelledby="summary-heading" className="flex flex-col gap-4 rounded-3xl bg-card p-4 md:p-6">
+      <h2 id="summary-heading" className="text-xl font-medium">
+        Exam summary
+      </h2>
+      <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        {stats.map(([label, value]) => (
+          <div key={label} className="flex flex-col">
+            <dt className="text-sm text-muted-foreground">{label}</dt>
+            <dd className="text-xl font-medium tabular-nums">{value}</dd>
+          </div>
+        ))}
+      </dl>
+      <div aria-label="Score spread" className="flex h-24 items-end gap-2">
+        {summary.buckets.map((count, index) => (
+          <div key={index} className="flex flex-1 flex-col items-center gap-1">
+            <div className="w-full rounded-t-md bg-primary/70" style={{ height: `${(count / tallest) * PERCENT}%` }} />
+            <span className="text-xs text-muted-foreground tabular-nums">{index * 20}–{(index + 1) * 20}%</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ResultsTable({ scores }: { scores: ScoreRow[] }) {
+  return (
+    <ul aria-label="Attempts" className="flex flex-col rounded-3xl bg-card p-2 md:p-4">
+      {scores.map((score) => (
+        <li key={score.attempt_id} className="flex min-h-14 items-center justify-between gap-4 border-b border-border px-3 last:border-0">
+          <span className="flex min-w-0 flex-col">
+            <span className="text-base">{score.name}</span>
+            <span className="text-sm text-muted-foreground">Roll {score.roll}</span>
+          </span>
+          <span className="shrink-0 text-base tabular-nums">
+            {score.total} of {score.max_total} marks · {Math.round((score.total / score.max_total) * PERCENT)}%
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }

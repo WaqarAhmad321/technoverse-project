@@ -133,7 +133,6 @@ test("opening a closed exam marks every objective answer, and marking again chan
   await page.getByRole("link", { name: "Open marking" }).click();
   await expect(page.getByText(/^30 attempts · \d+ objective answers marked/)).toBeVisible({ timeout: 20_000 });
   const attempts = page.getByRole("list", { name: "Attempts" });
-  await expect(attempts.getByText("Not marked")).toHaveCount(0);
   const before = await attempts.innerText();
   await page.getByRole("button", { name: "Mark objective answers" }).click();
   await page.reload();
@@ -164,11 +163,15 @@ test("the key check flags Q7, blocks publishing, and a key change regrades every
   await expect(flags).toContainText(/Q7: \d+% of the top scorers chose B, the key says C\./, { timeout: 20_000 });
   await expect(page.getByRole("button", { name: "Publish results" })).toBeDisabled();
   const ayesha = page.getByRole("list", { name: "Attempts" }).getByRole("listitem").filter({ hasText: "Ayesha Khan" });
-  const before = Number((await ayesha.innerText()).match(/([\d.]+) objective marks/)?.[1]);
+  const before = Number((await ayesha.innerText()).match(/([\d.]+) of \d+ marks/)?.[1]);
 
   await page.getByLabel("Reason (shown on results)").fill("Top scorers chose B; B is correct");
   await page.getByRole("button", { name: "Change key to B" }).click();
   await expect(page.getByText("No answer key looks wrong.")).toBeVisible({ timeout: 20_000 });
-  const after = Number((await ayesha.innerText()).match(/([\d.]+) objective marks/)?.[1]);
+  const after = Number((await ayesha.innerText()).match(/([\d.]+) of \d+ marks/)?.[1]);
   expect(after).toBeGreaterThan(before);
+
+  await expect(page.getByText("Exam summary")).toBeVisible();
+  await page.getByRole("button", { name: "Publish results" }).click();
+  await expect(page.getByText(/^Results published/)).toBeVisible({ timeout: 20_000 });
 });

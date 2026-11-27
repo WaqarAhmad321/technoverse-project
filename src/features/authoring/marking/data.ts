@@ -19,12 +19,3 @@ export async function listFinishedAttempts(member: Member, examId: string): Prom
   );
 }
 
-export async function objectiveTotals(member: Member, attemptIds: string[]): Promise<Map<string, number>> {
-  if (attemptIds.length === 0) return new Map();
-  const grades: { attempt_id: string; marks_awarded: number }[] = unwrap(
-    await db().from("grades").select("attempt_id, marks_awarded").eq("institution_id", member.institution.id).eq("source", "auto").in("attempt_id", attemptIds),
-  );
-  const totals = new Map<string, number>();
-  for (const grade of grades) totals.set(grade.attempt_id, (totals.get(grade.attempt_id) ?? 0) + Number(grade.marks_awarded));
-  return totals;
-}
