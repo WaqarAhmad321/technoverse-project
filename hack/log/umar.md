@@ -5,3 +5,4 @@
 15:20 decided: key check flags 'likely wrong key' when top scorers prefer a wrong option over the key (seed gives B 50% vs C 38%)
 15:35 decided: unmarked written answers do not block publishing results (count 0, marking later issues a new result version) so demo step 8 works after marking one
 15:45 cut: question analytics skips written-question average marks
+16:00 cut: dispute desk lists challenges newest first instead of grouping by question; uphold offers accept both or full marks

@@ -213,3 +213,20 @@ test("a question import reports a key outside the options, then imports an Urdu 
   await page.goto("/questions");
   await expect(page.getByText(urdu)).toBeVisible();
 });
+
+test("a candidate challenges a question and the examiner decides it", async ({ page, world }) => {
+  const { candidatePage } = world;
+  await candidatePage.goto("/results");
+  await candidatePage.getByRole("link", { name: /Physics Pre-test/ }).click();
+  await candidatePage.getByRole("link", { name: "Challenge a question" }).click();
+  await candidatePage.getByLabel("Question").selectOption({ index: 1 });
+  await candidatePage.getByLabel("What is wrong with it?").fill("Two of the options say the same thing in different words.");
+  await candidatePage.getByRole("button", { name: "Send challenge" }).click();
+  await expect(candidatePage).toHaveURL(/\/results\//, { timeout: 15_000 });
+
+  await page.goto("/disputes");
+  await page.getByRole("list", { name: "Challenges" }).getByRole("link").first().click();
+  await page.getByLabel("Reason (the candidate sees it)").fill("The options are clearly different; the key stands.");
+  await page.getByRole("button", { name: "Reject" }).click();
+  await expect(page.getByRole("list", { name: "Challenges" })).toContainText("Rejected", { timeout: 15_000 });
+});
