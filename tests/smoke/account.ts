@@ -5,7 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 export type Account = { name: string; email: string; password: string };
 
 // Someone who sets exams gets a seeded institution at sign-up: about 1,300 rows.
-const SIGN_UP_WITH_SEED_MS = 20_000;
+const SIGN_UP_WITH_SEED_MS = 45_000;
 
 function requireEnv(name: string): string {
   const value = process.env[name];

@@ -6,9 +6,20 @@ import { db, unwrap } from "@/lib/db";
 const UNIQUE_VIOLATION = "23505";
 const MAX_TRIES = 3;
 
+// The database stores payloads as jsonb, which reorders keys; hashing a key-sorted form gives the same
+// hash before writing and after reading back.
+function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+  if (value !== null && typeof value === "object") {
+    const entries = Object.entries(value).sort(([a], [b]) => a.localeCompare(b));
+    return `{${entries.map(([key, inner]) => `${JSON.stringify(key)}:${canonicalJson(inner)}`).join(",")}}`;
+  }
+  return JSON.stringify(value) ?? "null";
+}
+
 export function auditHash(prevHash: string, action: string, entityId: string | null, payload: unknown): string {
   return createHash("sha256")
-    .update(`${prevHash}|${action}|${entityId ?? ""}|${JSON.stringify(payload)}`)
+    .update(`${prevHash}|${action}|${entityId ?? ""}|${canonicalJson(payload)}`)
     .digest("hex");
 }
 
