@@ -3,6 +3,8 @@ import { expect, test } from "./account";
 const SYNC_AFTER_OUTAGE_MS = 20_000;
 // Starting builds the candidate's paper: several database round trips, slow from a laptop far from the database.
 const START_EXAM_MS = 15_000;
+// A save runs several database round trips plus a re-render: seconds from a laptop, not a fault.
+const SAVE_MS = 15_000;
 
 test("a candidate sits an exam: answers survive a reload and an outage, and one submit gives one receipt", async ({ world }) => {
   const { candidatePage: page } = world;
@@ -61,4 +63,24 @@ test("a candidate sees only her published results, and anyone can verify one", a
   await expect(visitor.getByRole("heading", { name: "Valid result" })).toBeVisible();
   await expect(visitor.getByText("A. K.")).toBeVisible();
   await visitor.close();
+});
+
+test("the institution admin makes a candidate an examiner, but cannot drop her own admin role", async ({ page, world }) => {
+  await page.goto("/admin/people");
+  await page.getByRole("button", { name: "Change roles for Ayesha Khan" }).click();
+  await page.getByRole("checkbox", { name: /^Examiner/ }).check();
+  await page.getByRole("button", { name: "Save roles" }).click();
+  await expect(page.getByRole("row", { name: /Ayesha Khan/ }).getByText("Candidate, Examiner")).toBeVisible({ timeout: SAVE_MS });
+
+  await page.getByRole("button", { name: `Change roles for ${world.examiner.name}` }).click();
+  await page.getByRole("checkbox", { name: /^Admin/ }).uncheck();
+  await page.getByRole("button", { name: "Save roles" }).click();
+  await expect(page.getByRole("alert")).toContainText("Make someone else an admin first", { timeout: SAVE_MS });
+  await page.getByRole("button", { name: "Cancel" }).click();
+
+  // The world's accounts are shared by every test on this worker: put Ayesha back as she was.
+  await page.getByRole("button", { name: "Change roles for Ayesha Khan" }).click();
+  await page.getByRole("checkbox", { name: /^Examiner/ }).uncheck();
+  await page.getByRole("button", { name: "Save roles" }).click();
+  await expect(page.getByRole("row", { name: /Ayesha Khan/ }).getByText("Candidate", { exact: true })).toBeVisible({ timeout: SAVE_MS });
 });
