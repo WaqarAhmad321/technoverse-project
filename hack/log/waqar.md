@@ -14,3 +14,4 @@
 15:50 shared: roles controller, invigilator, observer in src/lib/access.ts; can(member, "results.approve", exam) is true for a controller who did not create the exam (for umar/160); "audit.view" for admin, controller, observer
 15:40 shared: smoke fixture `freshAccount` gives a test its own seeded institution; the key-check test uses it because other tests change the shared Quiz 1
 15:58 shared: scripts/local-db up|down runs a local Supabase for the check (needs Docker access); scripts/check uses it when local-db.vars exists. Migrations then also need scripts/db push against the cloud
+16:48 shared: app frame is now a collapsible rounded sidebar (src/components/app-sidebar.tsx) with icons from src/components/nav-icons.tsx (add your href there); dark theme by default with a light toggle; StatTile and .lift hover in shared components

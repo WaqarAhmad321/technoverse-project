@@ -18,8 +18,7 @@ test("each demo role gets into Ravi Science College with one click", async ({ pa
     await expect(page.getByRole("heading", { level: 1 })).toContainText(name);
     await expect(page.getByRole("main").getByText("Ravi Science College, Lahore")).toBeVisible();
 
-    await page.getByRole("button", { name: "Account menu" }).click();
-    await page.getByRole("menuitem", { name: "Sign out" }).click();
+    await page.getByRole("button", { name: "Sign out" }).first().click();
     await expect(page).toHaveURL(/\/$/);
   }
 });
@@ -42,8 +41,7 @@ test("a new person creates an account, changes their name and signs out", async 
   await page.goto("/home");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Hana Idris-Khan");
 
-  await page.getByRole("button", { name: "Account menu" }).click();
-  await page.getByRole("menuitem", { name: "Sign out" }).click();
+  await page.getByRole("button", { name: "Sign out" }).first().click();
   await expect(page).toHaveURL(/\/$/);
 
   await page.goto("/home");

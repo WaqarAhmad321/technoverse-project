@@ -1,37 +1,88 @@
+import { Activity, Award, CalendarClock, ClipboardList, FilePenLine, Library, NotebookPen, ShieldCheck, UsersRound } from "lucide-react";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
+import { StatTile } from "@/components/stat-tile";
 import { Button } from "@/components/ui/button";
 import { getAccess } from "@/lib/access";
-import { navFor, type NavAudience } from "@/lib/nav";
-
-const HOME = "/home";
+import { formatPkt } from "@/lib/format";
+import { loadCandidateSummary, loadStaffSummary } from "@/lib/home-data";
 
 export default async function HomePage() {
   const access = await getAccess();
   const firstName = access.profile.display_name;
-  const audience: NavAudience[] = [...(access.current?.roles ?? []), ...(access.profile.is_super_admin ? (["super_admin"] as const) : [])];
-  const shortcuts = navFor(audience).filter((item) => item.href !== HOME);
+  const current = access.current;
+  const member = current ? { user: access.user, profile: access.profile, institution: current.institution, roles: current.roles } : null;
+  const isStaff = current?.roles.some((role) => role !== "candidate") ?? false;
+  const isCandidate = current?.roles.includes("candidate") ?? false;
+  const [staff, candidate] = await Promise.all([
+    member && isStaff ? loadStaffSummary(member) : null,
+    member && isCandidate ? loadCandidateSummary(member) : null,
+  ]);
 
   return (
-    <div className="flex flex-col gap-6">
-      <PageHeader title={`Welcome, ${firstName}`} description={access.current?.institution.name} />
-      {access.suspended && (
-        <p className="text-base">Your institution is suspended. Ask the platform admin to reactivate it.</p>
-      )}
-      {!access.current && !access.suspended && !access.profile.is_super_admin && (
-        <p className="text-base">
-          You are not on an institution&apos;s roster yet. Ask your examiner to add {access.profile.email}, then sign in
-          again.
+    <div className="flex flex-col gap-8">
+      <PageHeader title={`Welcome, ${firstName}`} description={current?.institution.name ?? (access.profile.is_super_admin ? "Platform admin" : undefined)} />
+
+      {access.suspended && <p className="rounded-3xl bg-card p-6 text-base">Your institution is suspended. Ask the platform admin to reactivate it.</p>}
+      {!current && !access.suspended && !access.profile.is_super_admin && (
+        <p className="rounded-3xl bg-card p-6 text-base">
+          You are not on an institution&apos;s roster yet. Ask your examiner to add {access.profile.email}, then sign in again.
         </p>
       )}
-      {shortcuts.length > 0 && (
-        <div className="flex flex-wrap gap-3">
-          {shortcuts.map((item, index) => (
-            <Button key={item.href} asChild size="lg" variant={index === 0 ? "default" : "outline"}>
-              <Link href={item.href}>{item.label}</Link>
-            </Button>
-          ))}
-        </div>
+
+      {candidate && (
+        <section aria-labelledby="next-up" className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 rounded-3xl bg-card p-6 md:flex-row md:items-center md:justify-between md:p-8">
+            <div className="flex items-start gap-4">
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+                <NotebookPen aria-hidden className="size-6" />
+              </span>
+              <div className="flex flex-col gap-1">
+                <h2 id="next-up" className="text-sm text-muted-foreground">
+                  {candidate.nextExam ? (candidate.nextIsOpen ? "Open now" : "Next exam") : "Nothing to sit right now"}
+                </h2>
+                <p className="text-2xl font-medium tracking-tight">{candidate.nextExam?.title ?? "You are all caught up"}</p>
+                {candidate.nextExam && (
+                  <p className="text-base text-muted-foreground">
+                    {candidate.nextIsOpen
+                      ? `${candidate.nextExam.duration_minutes} minutes · closes ${formatPkt(candidate.nextExam.closes_at)}`
+                      : `Opens ${formatPkt(candidate.nextExam.opens_at)}`}
+                  </p>
+                )}
+              </div>
+            </div>
+            {candidate.nextExam && (
+              <Button asChild size="lg">
+                <Link href={`/exams/${candidate.nextExam.id}`}>{candidate.nextIsOpen ? "Start exam" : "See details"}</Link>
+              </Button>
+            )}
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <StatTile href="/exams" icon={CalendarClock} value={candidate.upcoming} label="Upcoming exams" />
+            <StatTile href="/results" icon={Award} value={candidate.results} label="Published results" />
+          </div>
+        </section>
+      )}
+
+      {staff && current && (
+        <section aria-label="Your institution at a glance" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {(current.roles.includes("examiner") || current.roles.includes("institution_admin") || current.roles.includes("controller") || current.roles.includes("invigilator")) && (
+            <StatTile href="/monitor" icon={Activity} value={staff.openNow} label="Exams open now" />
+          )}
+          {current.roles.includes("examiner") && (
+            <>
+              <StatTile href="/manage" icon={FilePenLine} value={staff.drafts} label="Drafts to finish" />
+              <StatTile href="/manage" icon={ClipboardList} value={staff.toPublish} label="Closed, results not out" />
+              <StatTile href="/questions" icon={Library} value={staff.questions} label="Questions in the bank" />
+            </>
+          )}
+          {current.roles.includes("institution_admin") && (
+            <>
+              <StatTile href="/admin/people" icon={UsersRound} value={staff.people} label="Roles held by people" />
+              <StatTile href="/admin/audit" icon={ShieldCheck} value={staff.auditEvents} label="Recorded actions" />
+            </>
+          )}
+        </section>
       )}
     </div>
   );
