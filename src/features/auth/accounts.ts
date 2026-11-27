@@ -8,8 +8,16 @@ import { saveProfile } from "@/lib/profile";
 import { seedSampleData } from "@/lib/sample-data";
 import { createSessionClient } from "@/lib/supabase/session";
 
-export type AccountKind = "examiner" | "candidate";
-type NewAccount = { name: string; email: string; password: string; kind: AccountKind; institutionName: string };
+export type AccountKind = "examiner" | "candidate" | "staff";
+type NewAccount = {
+  name: string;
+  email: string;
+  password: string;
+  kind: AccountKind;
+  institutionName: string;
+  joinInstitutionId?: string;
+  joinRole?: string;
+};
 
 export type CreateAccountResult = "created" | "email-taken" | "failed";
 export type StartSessionResult =
@@ -47,6 +55,18 @@ export async function createAccount(account: NewAccount): Promise<CreateAccountR
 
   await saveProfile({ userId: created.id, displayName: account.name, email: account.email });
   if (account.kind === "candidate") return "created";
+  if (account.kind === "staff") {
+    if (!account.joinInstitutionId || !account.joinRole) return "failed";
+    unwrap(
+      await db().from("join_requests").insert({
+        user_id: created.id,
+        institution_id: account.joinInstitutionId,
+        member_id: created.id,
+        role_requested: account.joinRole,
+      }),
+    );
+    return "created";
+  }
 
   // A new institution waits for the platform admin; it can set everything up but not publish until approved.
   const institutionId = await createInstitution(created.id, account.institutionName, "pending");

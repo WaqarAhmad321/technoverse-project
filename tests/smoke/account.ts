@@ -57,7 +57,7 @@ async function approveInstitutionOf(account: Account): Promise<void> {
   await admin.from("institutions").update({ status: "active" }).eq("user_id", data.user.id);
 }
 
-async function removeAccount(account: Account): Promise<void> {
+export async function removeAccount(account: Account): Promise<void> {
   const url = requireEnv("NEXT_PUBLIC_SUPABASE_URL");
   const noSession = { auth: { persistSession: false, autoRefreshToken: false } };
 

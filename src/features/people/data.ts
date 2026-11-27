@@ -73,3 +73,27 @@ export async function loadInstitutionDetail(institutionId: string): Promise<Inst
     candidateCount: candidates.length,
   };
 }
+
+export type PendingInvitation = { id: string; email: string; role: string; createdAt: string };
+export type JoinRequestRow = { id: string; name: string; email: string; role: string; note: string; createdAt: string };
+
+export async function loadPendingInvitations(member: Member): Promise<PendingInvitation[]> {
+  const rows: { id: string; email: string; role: string; created_at: string }[] = unwrap(
+    await db().from("invitations").select("id, email, role, created_at").eq("institution_id", member.institution.id).eq("status", "pending").order("created_at", { ascending: false }),
+  );
+  return rows.map((row) => ({ id: row.id, email: row.email, role: row.role, createdAt: row.created_at }));
+}
+
+export async function loadJoinRequests(member: Member): Promise<JoinRequestRow[]> {
+  const rows: { id: string; member_id: string; role_requested: string; note: string; created_at: string }[] = unwrap(
+    await db().from("join_requests").select("id, member_id, role_requested, note, created_at").eq("institution_id", member.institution.id).eq("status", "pending").order("created_at", { ascending: true }),
+  );
+  if (rows.length === 0) return [];
+  const profiles: { id: string; display_name: string; email: string }[] = unwrap(
+    await db().from("profiles").select("id, display_name, email").in("id", rows.map((row) => row.member_id)),
+  );
+  return rows.map((row) => {
+    const profile = profiles.find((candidate) => candidate.id === row.member_id);
+    return { id: row.id, name: profile?.display_name ?? "Someone", email: profile?.email ?? "", role: row.role_requested, note: row.note, createdAt: row.created_at };
+  });
+}

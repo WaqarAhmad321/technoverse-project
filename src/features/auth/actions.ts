@@ -2,8 +2,9 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { syncCandidateMemberships } from "@/lib/access";
+import { syncCandidateMemberships, syncInvitations } from "@/lib/access";
 import { DEMO_ROLES, type DemoRole } from "@/lib/demo-accounts";
+import { REQUESTABLE_ROLES } from "@/features/people/roles";
 import { displayNameSchema } from "@/lib/profile";
 import { getEnv } from "@/lib/env";
 import { APP_HOME } from "@/lib/site";
@@ -24,8 +25,10 @@ const newAccountSchema = z.object({
   name: displayNameSchema,
   email: z.email(),
   password: z.string().min(MIN_PASSWORD_LENGTH).max(MAX_PASSWORD_LENGTH),
-  kind: z.enum(["examiner", "candidate"]),
+  kind: z.enum(["examiner", "candidate", "staff"]),
   institutionName: z.string().trim().max(MAX_INSTITUTION_NAME_LENGTH),
+  joinInstitutionId: z.uuid().optional(),
+  joinRole: z.enum(REQUESTABLE_ROLES).optional(),
 });
 
 export type AuthFormState = { error: string; name: string; email: string } | null;
@@ -37,6 +40,7 @@ function typedText(formData: FormData, field: string): string {
 
 async function afterSignIn(userId: string, email: string): Promise<never> {
   await syncCandidateMemberships(userId, email);
+  await syncInvitations(userId, email);
   redirect(APP_HOME);
 }
 
@@ -66,7 +70,12 @@ export async function signUp(_previous: AuthFormState, formData: FormData): Prom
     password: formData.get("password"),
     kind: formData.get("kind"),
     institutionName: typedText(formData, "institutionName"),
+    joinInstitutionId: typedText(formData, "joinInstitutionId") || undefined,
+    joinRole: typedText(formData, "joinRole") || undefined,
   });
+  if (account.success && account.data.kind === "staff" && !(account.data.joinInstitutionId && account.data.joinRole)) {
+    return { ...typed, error: "Pick the institution you want to join and the role you need." };
+  }
   if (!account.success) {
     return { ...typed, error: "Enter your name, your email, a password of at least 8 characters, and what you will do here." };
   }

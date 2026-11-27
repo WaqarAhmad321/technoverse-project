@@ -8,7 +8,7 @@ export default async function MyExamsPage() {
   const member = await requireMember("candidate");
   const entries = await loadMyExams(member);
 
-  const open = entries.filter((entry) => entry.phase === "open" && entry.attempt?.status !== "submitted" && entry.attempt?.status !== "auto_submitted");
+  const open = entries.filter((entry) => entry.phase === "open" && entry.attempt?.status !== "submitted" && entry.attempt?.status !== "auto_submitted" && entry.attempt?.status !== "voided");
   const upcoming = entries.filter((entry) => entry.phase === "upcoming");
   const completed = entries.filter((entry) => !open.includes(entry) && !upcoming.includes(entry));
 

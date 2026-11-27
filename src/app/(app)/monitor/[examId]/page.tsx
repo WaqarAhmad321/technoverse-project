@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Wifi, WifiOff } from "lucide-react";
@@ -42,6 +43,7 @@ function signalText(signal: MonitorRow["signals"][number]): string {
 function StatusCell({ row, questionCount }: { row: MonitorRow; questionCount: number }) {
   const { attempt } = row;
   if (!attempt) return <span className="text-muted-foreground">Not started</span>;
+  if (attempt.status === "voided") return <span>Voided by the examiner</span>;
   if (attempt.status === "auto_submitted") return <span>Submitted automatically</span>;
   if (attempt.status === "submitted") return <span>Submitted {attempt.submitted_at ? formatPkt(attempt.submitted_at) : ""}</span>;
   const quietSeconds = secondsSince(attempt.last_seen_at);
@@ -146,6 +148,11 @@ export default async function MonitorPage({
     <div className="flex flex-col gap-6">
       <AutoRefresh everyMs={REFRESH_MS} />
       <PageHeader back={{ href: "/monitor", label: "Live monitor" }} title={exam.title} description="Live. Updates every 5 seconds." />
+      {canSpeak && (
+        <Link href={`/monitor/${exam.id}/integrity`} className="w-fit text-base underline underline-offset-4">
+          Integrity review: signals for review, not evidence
+        </Link>
+      )}
       {canSpeak && <AnnouncementForm examId={exam.id} />}
       {announcements.length > 0 && (
         <section className="flex flex-col gap-2 rounded-3xl bg-card p-4 md:p-6">

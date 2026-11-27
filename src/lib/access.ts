@@ -3,6 +3,7 @@ import { cache } from "react";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { getUser, requireUser, type SessionUser } from "@/lib/auth";
+import { recordAudit } from "@/lib/audit";
 import { db, unwrap } from "@/lib/db";
 import type { Institution, Membership, Profile } from "@/lib/exam-types";
 
@@ -151,4 +152,42 @@ export async function syncCandidateMemberships(userId: string, email: string): P
       .from("memberships")
       .upsert(memberships, { onConflict: "institution_id,member_id,role", ignoreDuplicates: true }),
   );
+}
+
+type PendingInvitation = { id: string; institution_id: string; invited_by: string; role: string };
+
+// Runs at every sign-in and sign-up: each pending invitation for this email becomes a membership.
+export async function syncInvitations(userId: string, email: string): Promise<void> {
+  const invitations: PendingInvitation[] = unwrap(
+    await db().from("invitations").select("id, institution_id, invited_by, role").eq("email", email.toLowerCase()).eq("status", "pending"),
+  );
+  if (invitations.length === 0) return;
+
+  const rows = invitations.map((invitation) => ({
+    user_id: invitation.invited_by,
+    institution_id: invitation.institution_id,
+    member_id: userId,
+    role: invitation.role,
+  }));
+  unwrap(await db().from("memberships").upsert(rows, { onConflict: "institution_id,member_id,role", ignoreDuplicates: true }));
+  unwrap(
+    await db()
+      .from("invitations")
+      .update({ status: "accepted", accepted_at: new Date().toISOString() })
+      .in("id", invitations.map((invitation) => invitation.id)),
+  );
+
+  const institutionIds = [...new Set(invitations.map((invitation) => invitation.institution_id))];
+  const institutions: Institution[] = unwrap(await db().from("institutions").select("*").in("id", institutionIds));
+  const profile: Profile | null = unwrap(await db().from("profiles").select("*").eq("id", userId).maybeSingle());
+  for (const institution of institutions) {
+    const accepted = invitations.filter((invitation) => invitation.institution_id === institution.id);
+    const actor: Member = {
+      user: { id: userId, email: email.toLowerCase() },
+      profile: profile ?? { id: userId, display_name: email.split("@")[0] ?? email, email: email.toLowerCase(), is_super_admin: false, created_at: new Date().toISOString() },
+      institution,
+      roles: [],
+    };
+    await recordAudit(actor, "invitation.accepted", userId, { roles: accepted.map((invitation) => invitation.role) });
+  }
 }
